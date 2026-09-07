@@ -1,0 +1,12 @@
+apiVersion: 1
+
+datasources:
+  - name: CloudWatch
+    type: cloudwatch
+    access: proxy
+    isDefault: true
+    jsonData:
+      authType: default          # uses the ECS task role — no keys needed
+      defaultRegion: ${AWS_REGION}
+    version: 1
+    editable: false
