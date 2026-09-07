@@ -213,7 +213,7 @@ test('GitHubActionsDeployRole is created with OIDC trust policy', () => {
               'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
             }),
             StringLike: Match.objectLike({
-              'token.actions.githubusercontent.com:sub': 'repo:ajaydhungel7/distributed-loadtesting:*',
+              'token.actions.githubusercontent.com:sub': 'repo:ajaydhungel7*distributed-loadtesting*',
             }),
           }),
         }),

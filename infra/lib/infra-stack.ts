@@ -191,9 +191,11 @@ export class InfraStack extends cdk.Stack {
             'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
           },
           StringLike: {
-            // Allows any branch/PR/tag in this repo to assume this role
+            // GitHub now appends numeric user/repo IDs to the sub claim:
+            // e.g. repo:user@<userId>/repo@<repoId>:ref:refs/heads/main
+            // The wildcard prefix and suffix handle both old and new formats.
             'token.actions.githubusercontent.com:sub':
-              'repo:ajaydhungel7/distributed-loadtesting:*',
+              'repo:ajaydhungel7*distributed-loadtesting*',
           },
         },
       ),
