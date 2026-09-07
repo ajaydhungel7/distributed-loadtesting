@@ -116,7 +116,7 @@ export class InfraStack extends cdk.Stack {
     this.controlPlaneTaskRole = new iam.Role(this, 'ControlPlaneTaskRole', {
       roleName: 'ControlPlaneTaskRole',
       assumedBy: ecsTaskPrincipal,
-      description: 'Task role for the load test control plane — least privilege',
+      description: 'Task role for the load test control plane (least privilege)',
     });
 
     this.controlPlaneTaskRole.addToPolicy(new iam.PolicyStatement({
@@ -140,7 +140,7 @@ export class InfraStack extends cdk.Stack {
     this.workerTaskRole = new iam.Role(this, 'WorkerTaskRole', {
       roleName: 'WorkerTaskRole',
       assumedBy: ecsTaskPrincipal,
-      description: 'Task role for load test workers — least privilege',
+      description: 'Task role for load test workers (least privilege)',
     });
 
     this.workerTaskRole.addToPolicy(new iam.PolicyStatement({
@@ -175,10 +175,12 @@ export class InfraStack extends cdk.Stack {
     // ── GitHub Actions OIDC ───────────────────────────────────────────────────
     // Allows GitHub Actions to assume an AWS role without storing any long-lived
     // credentials as secrets. GitHub's identity token is verified by AWS directly.
-    const githubOidcProvider = new iam.OpenIdConnectProvider(this, 'GitHubOidcProvider', {
-      url: 'https://token.actions.githubusercontent.com',
-      clientIds: ['sts.amazonaws.com'],
-    });
+    // Import the existing GitHub OIDC provider — only one is allowed per account
+    const githubOidcProvider = iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
+      this,
+      'GitHubOidcProvider',
+      `arn:aws:iam::${this.account}:oidc-provider/token.actions.githubusercontent.com`,
+    );
 
     const githubActionsRole = new iam.Role(this, 'GitHubActionsDeployRole', {
       roleName: 'GitHubActionsDeployRole',
@@ -195,7 +197,7 @@ export class InfraStack extends cdk.Stack {
           },
         },
       ),
-      description: 'Assumed by GitHub Actions via OIDC — no long-lived keys',
+      description: 'Assumed by GitHub Actions via OIDC (no long-lived keys)',
     });
 
     // ECR push permissions — needed to docker push images
