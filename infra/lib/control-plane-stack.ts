@@ -70,7 +70,7 @@ export class ControlPlaneStack extends cdk.Stack {
         streamPrefix: 'ecs',
       }),
       healthCheck: {
-        command: ['CMD-SHELL', 'curl -f http://localhost:8000/health || exit 1'],
+        command: ['CMD-SHELL', 'python3 -c "import urllib.request; urllib.request.urlopen(\'http://localhost:8000/health\')" || exit 1'],
         interval: cdk.Duration.seconds(30),
         timeout: cdk.Duration.seconds(5),
         retries: 3,
