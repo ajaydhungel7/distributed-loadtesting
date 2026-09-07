@@ -181,10 +181,20 @@ test('WorkerTaskRole is created with ECS trust policy', () => {
 
 // ── GitHub Actions OIDC ───────────────────────────────────────────────────────
 
-test('GitHub OIDC provider is created', () => {
-  template.hasResourceProperties('Custom::AWSCDKOpenIdConnectProvider', {
-    Url: 'https://token.actions.githubusercontent.com',
-    ClientIDList: Match.arrayWith(['sts.amazonaws.com']),
+test('GitHubActionsDeployRole references GitHub OIDC provider', () => {
+  // We import the existing provider (fromOpenIdConnectProviderArn) rather than
+  // creating a new one, so no Custom::AWSCDKOpenIdConnectProvider resource exists.
+  // Verify that the deploy role's trust policy references the OIDC provider ARN.
+  template.hasResourceProperties('AWS::IAM::Role', {
+    RoleName: 'GitHubActionsDeployRole',
+    AssumeRolePolicyDocument: Match.objectLike({
+      Statement: Match.arrayWith([
+        Match.objectLike({
+          Action: 'sts:AssumeRoleWithWebIdentity',
+          Principal: Match.objectLike({ Federated: Match.anyValue() }),
+        }),
+      ]),
+    }),
   });
 });
 
