@@ -66,7 +66,7 @@ export class AutoscalingStack extends cdk.Stack {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
       evaluationPeriods: 1,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-      alarmDescription: 'Jobs are waiting in the load test queue — scale out workers',
+      alarmDescription: 'Jobs are waiting in the load test queue - scale out workers',
     });
     scaleOutAlarm.addAlarmAction(
       new cloudwatch_actions.ApplicationScalingAction(scaleOutAction),
@@ -88,7 +88,7 @@ export class AutoscalingStack extends cdk.Stack {
       evaluationPeriods: 5,
       datapointsToAlarm: 5,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-      alarmDescription: 'SQS job queue has been empty for 5 minutes — scale workers to 0',
+      alarmDescription: 'SQS job queue has been empty for 5 minutes - scale workers to 0',
     });
     scaleInAlarm.addAlarmAction(
       new cloudwatch_actions.ApplicationScalingAction(scaleInAction),

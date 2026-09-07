@@ -88,7 +88,7 @@ export class ControlPlaneStack extends cdk.Stack {
 
     const serviceSg = new ec2.SecurityGroup(this, 'ControlPlaneServiceSg', {
       vpc,
-      description: 'Control plane ECS service — allow traffic from ALB only',
+      description: 'Control plane ECS service - allow traffic from ALB only',
       allowAllOutbound: true,
     });
     serviceSg.addIngressRule(albSg, ec2.Port.tcp(8000), 'From ALB only');

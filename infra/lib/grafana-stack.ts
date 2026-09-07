@@ -105,7 +105,7 @@ export class GrafanaStack extends cdk.Stack {
 
     const serviceSg = new ec2.SecurityGroup(this, 'GrafanaServiceSg', {
       vpc,
-      description: 'Grafana ECS service — allow traffic from ALB only',
+      description: 'Grafana ECS service - allow traffic from ALB only',
       allowAllOutbound: true,
     });
     serviceSg.addIngressRule(albSg, ec2.Port.tcp(3000), 'From Grafana ALB only');
