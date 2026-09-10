@@ -1,9 +1,16 @@
 {
   "__inputs": [],
   "__requires": [
-    { "type": "datasource", "id": "cloudwatch", "name": "CloudWatch", "version": "1.0.0" }
+    {
+      "type": "datasource",
+      "id": "cloudwatch",
+      "name": "CloudWatch",
+      "version": "1.0.0"
+    }
   ],
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "description": "Real-time metrics for distributed load tests",
   "editable": false,
   "fiscalYearStartMonth": 0,
@@ -13,34 +20,106 @@
   "panels": [
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 10,
       "title": "Response Time",
       "type": "row"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
       "description": "HTTP response time percentiles across all workers for this test",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "lineWidth": 2 },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2
+          },
           "unit": "ms"
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "p50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "p95" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "p99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p99"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
         ]
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 1 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
       "id": 1,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
       "targets": [
         {
           "alias": "p50",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "expression": "",
           "id": "",
           "matchExact": false,
@@ -56,25 +135,37 @@
         },
         {
           "alias": "p95",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "p95",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "B",
           "region": "default",
-          "statistic": "Average"
+          "statistic": "Average",
+          "matchExact": false
         },
         {
           "alias": "p99",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "p99",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "C",
           "region": "default",
-          "statistic": "Average"
+          "statistic": "Average",
+          "matchExact": false
         }
       ],
       "title": "Response Time (ms)",
@@ -82,66 +173,125 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
       "id": 11,
       "title": "Throughput & Errors",
       "type": "row"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
       "description": "Requests per second across all workers",
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "blue", "mode": "fixed" },
-          "custom": { "lineWidth": 2 },
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "custom": {
+            "lineWidth": 2
+          },
           "unit": "reqps"
         }
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
       "id": 2,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
       "targets": [
         {
           "alias": "req/s",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "throughput",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "A",
           "region": "default",
-          "statistic": "Sum"
+          "statistic": "Sum",
+          "matchExact": false
         }
       ],
       "title": "Throughput (req/s)",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
       "description": "Fraction of requests that returned an error",
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "red", "mode": "fixed" },
-          "custom": { "lineWidth": 2 },
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          },
+          "custom": {
+            "lineWidth": 2
+          },
           "max": 1,
           "min": 0,
           "unit": "percentunit"
         }
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
       "id": 3,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
       "targets": [
         {
           "alias": "error rate",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "errorRate",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "A",
           "region": "default",
-          "statistic": "Average"
+          "statistic": "Average",
+          "matchExact": false
         }
       ],
       "title": "Error Rate",
@@ -149,35 +299,68 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
       "id": 12,
       "title": "Virtual Users",
       "type": "row"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
       "description": "Number of active virtual users over time",
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "purple", "mode": "fixed" },
-          "custom": { "fillOpacity": 20, "lineWidth": 2 },
+          "color": {
+            "fixedColor": "purple",
+            "mode": "fixed"
+          },
+          "custom": {
+            "fillOpacity": 20,
+            "lineWidth": 2
+          },
           "unit": "short"
         }
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 19 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
       "id": 4,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
       "targets": [
         {
           "alias": "active VUs",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "activeVUs",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "A",
           "region": "default",
-          "statistic": "Maximum"
+          "statistic": "Maximum",
+          "matchExact": false
         }
       ],
       "title": "Active Virtual Users",
@@ -185,85 +368,158 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
       "id": 13,
       "title": "Summary Stats",
       "type": "row"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
       "fieldConfig": {
-        "defaults": { "unit": "ms" },
+        "defaults": {
+          "unit": "ms"
+        },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "errorRate" }, "properties": [{ "id": "unit", "value": "percentunit" }] },
-          { "matcher": { "id": "byName", "options": "throughput" }, "properties": [{ "id": "unit", "value": "reqps" }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "errorRate"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "throughput"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "reqps"
+              }
+            ]
+          }
         ]
       },
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 28 },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
       "id": 5,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "center",
         "orientation": "horizontal",
-        "reduceOptions": { "calcs": ["mean"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "targets": [
         {
           "alias": "p50",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "p50",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "A",
           "region": "default",
-          "statistic": "Average"
+          "statistic": "Average",
+          "matchExact": false
         },
         {
           "alias": "p95",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "p95",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "B",
           "region": "default",
-          "statistic": "Average"
+          "statistic": "Average",
+          "matchExact": false
         },
         {
           "alias": "p99",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "p99",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "C",
           "region": "default",
-          "statistic": "Average"
+          "statistic": "Average",
+          "matchExact": false
         },
         {
           "alias": "errorRate",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "errorRate",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "D",
           "region": "default",
-          "statistic": "Average"
+          "statistic": "Average",
+          "matchExact": false
         },
         {
           "alias": "throughput",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "dimensions": { "testId": "$testId" },
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "dimensions": {
+            "testId": "$testId"
+          },
           "metricName": "throughput",
           "namespace": "LoadTest",
           "period": "60",
           "refId": "E",
           "region": "default",
-          "statistic": "Sum"
+          "statistic": "Sum",
+          "matchExact": false
         }
       ],
       "title": "Test Summary",
@@ -272,12 +528,19 @@
   ],
   "refresh": "15s",
   "schemaVersion": 38,
-  "tags": ["loadtest", "k6", "performance"],
+  "tags": [
+    "loadtest",
+    "k6",
+    "performance"
+  ],
   "templating": {
     "list": [
       {
         "current": {},
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+        "datasource": {
+          "type": "cloudwatch",
+          "uid": "cloudwatch"
+        },
         "definition": "",
         "hide": 0,
         "includeAll": false,
@@ -297,7 +560,11 @@
         "type": "query"
       },
       {
-        "current": { "selected": false, "text": "CloudWatch", "value": "CloudWatch" },
+        "current": {
+          "selected": false,
+          "text": "CloudWatch",
+          "value": "CloudWatch"
+        },
         "hide": 2,
         "includeAll": false,
         "label": "CloudWatch Datasource",
@@ -310,7 +577,10 @@
       }
     ]
   },
-  "time": { "from": "now-1h", "to": "now" },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Load Test Dashboard",
