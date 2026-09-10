@@ -11,7 +11,7 @@ beforeAll(() => {
   const app = new cdk.App();
   const infra = new InfraStack(app, 'TestInfraStack');
   const controlPlane = new ControlPlaneStack(app, 'TestControlPlaneStack', { infra });
-  const worker = new WorkerStack(app, 'TestWorkerStack', { infra });
+  const worker = new WorkerStack(app, 'TestWorkerStack', { infra, cluster: controlPlane.cluster });
   const autoscaling = new AutoscalingStack(app, 'TestAutoscalingStack', { infra, controlPlane, worker });
   template = Template.fromStack(autoscaling);
 });

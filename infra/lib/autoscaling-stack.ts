@@ -18,7 +18,7 @@ export class AutoscalingStack extends cdk.Stack {
     super(scope, id, props);
 
     const { jobQueue } = props.infra;
-    const { service } = props.controlPlane;
+    const { service } = props.worker;
 
     // ── Scalable Target ───────────────────────────────────────────────────────
     // Registers the worker ECS service as something App Auto Scaling can control.

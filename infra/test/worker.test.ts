@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Template, Match } from 'aws-cdk-lib/assertions';
 import { InfraStack } from '../lib/infra-stack';
+import { ControlPlaneStack } from '../lib/control-plane-stack';
 import { WorkerStack } from '../lib/worker-stack';
 
 let template: Template;
@@ -8,7 +9,8 @@ let template: Template;
 beforeAll(() => {
   const app = new cdk.App();
   const infra = new InfraStack(app, 'TestInfraStack');
-  const worker = new WorkerStack(app, 'TestWorkerStack', { infra });
+  const controlPlane = new ControlPlaneStack(app, 'TestControlPlaneStack', { infra });
+  const worker = new WorkerStack(app, 'TestWorkerStack', { infra, cluster: controlPlane.cluster });
   template = Template.fromStack(worker);
 });
 

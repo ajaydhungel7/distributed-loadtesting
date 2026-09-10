@@ -13,6 +13,7 @@ interface ControlPlaneStackProps extends cdk.StackProps {
 }
 
 export class ControlPlaneStack extends cdk.Stack {
+  public readonly cluster: ecs.Cluster;
   public readonly service: ecs.FargateService;
   public readonly alb: elbv2.ApplicationLoadBalancer;
 
@@ -22,7 +23,7 @@ export class ControlPlaneStack extends cdk.Stack {
     const { vpc, controlPlaneRepo, table, jobQueue } = props.infra;
 
     // ── ECS Cluster ───────────────────────────────────────────────────────────
-    const cluster = new ecs.Cluster(this, 'LoadTestCluster', {
+    this.cluster = new ecs.Cluster(this, 'LoadTestCluster', {
       vpc,
       clusterName: 'loadtest',
       containerInsights: true,
@@ -125,7 +126,7 @@ export class ControlPlaneStack extends cdk.Stack {
 
     // ── Fargate Service ───────────────────────────────────────────────────────
     this.service = new ecs.FargateService(this, 'ControlPlaneService', {
-      cluster,
+      cluster: this.cluster,
       taskDefinition: taskDef,
       desiredCount: 1,
       securityGroups: [serviceSg],
@@ -143,7 +144,7 @@ export class ControlPlaneStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'EcsClusterName', {
-      value: cluster.clusterName,
+      value: this.cluster.clusterName,
       exportName: 'EcsClusterName',
     });
   }

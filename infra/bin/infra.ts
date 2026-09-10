@@ -20,9 +20,9 @@ const infra = new InfraStack(app, 'InfraStack', { env });
 const controlPlane = new ControlPlaneStack(app, 'ControlPlaneStack', { env, infra });
 controlPlane.addDependency(infra);
 
-// Slice 3 — worker task definition (run on-demand, not a persistent service)
-const worker = new WorkerStack(app, 'WorkerStack', { env, infra });
-worker.addDependency(infra);
+// Slice 3 — worker service (starts at 0 tasks, scaled by autoscaling stack)
+const worker = new WorkerStack(app, 'WorkerStack', { env, infra, cluster: controlPlane.cluster });
+worker.addDependency(controlPlane);
 
 // Slice 4 — autoscaling: queue-depth-triggered scale-out/in
 const autoscaling = new AutoscalingStack(app, 'AutoscalingStack', { env, infra, controlPlane, worker });
