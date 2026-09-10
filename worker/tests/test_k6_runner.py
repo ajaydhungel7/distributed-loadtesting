@@ -42,36 +42,38 @@ def test_script_is_valid_javascript():
 
 # ── Output parsing ────────────────────────────────────────────────────────────
 
+# k6 --summary-export writes values flat on the metric object (no "values" nesting).
+# p50 is reported as "med"; p(99) is omitted when not explicitly requested.
 K6_SUMMARY = {
     "metrics": {
         "http_req_duration": {
-            "type": "trend",
-            "values": {
-                "avg": 45.2,
-                "p(50)": 40.1,
-                "p(95)": 120.5,
-                "p(99)": 200.3,
-                "min": 10.0,
-                "max": 500.0,
-            },
+            "avg": 45.2,
+            "med": 40.1,
+            "p(95)": 120.5,
+            "p(99)": 200.3,
+            "min": 10.0,
+            "max": 500.0,
         },
         "http_req_failed": {
-            "type": "rate",
-            "values": {"rate": 0.012, "passes": 3, "fails": 247},
+            "rate": 0.012,
+            "passes": 3,
+            "fails": 247,
         },
         "http_reqs": {
-            "type": "counter",
-            "values": {"count": 250, "rate": 8.33},
+            "count": 250,
+            "rate": 8.33,
         },
         "vus": {
-            "type": "gauge",
-            "values": {"value": 0, "min": 0, "max": 10},
+            "value": 0,
+            "min": 0,
+            "max": 10,
         },
     }
 }
 
 
 def test_parse_extracts_p50():
+    # k6 reports median as "med"; parser maps it to p50
     result = parse_k6_summary(K6_SUMMARY)
     assert result["p50"] == pytest.approx(40.1)
 
