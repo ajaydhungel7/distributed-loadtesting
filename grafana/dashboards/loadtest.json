@@ -19,7 +19,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
       "description": "HTTP response time percentiles across all workers for this test",
       "fieldConfig": {
         "defaults": {
@@ -39,7 +39,7 @@
       "targets": [
         {
           "alias": "p50",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "expression": "",
           "id": "",
@@ -56,7 +56,7 @@
         },
         {
           "alias": "p95",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "p95",
           "namespace": "LoadTest",
@@ -67,7 +67,7 @@
         },
         {
           "alias": "p99",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "p99",
           "namespace": "LoadTest",
@@ -88,7 +88,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
       "description": "Requests per second across all workers",
       "fieldConfig": {
         "defaults": {
@@ -103,7 +103,7 @@
       "targets": [
         {
           "alias": "req/s",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "throughput",
           "namespace": "LoadTest",
@@ -117,7 +117,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
       "description": "Fraction of requests that returned an error",
       "fieldConfig": {
         "defaults": {
@@ -134,7 +134,7 @@
       "targets": [
         {
           "alias": "error rate",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "errorRate",
           "namespace": "LoadTest",
@@ -155,7 +155,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
       "description": "Number of active virtual users over time",
       "fieldConfig": {
         "defaults": {
@@ -170,7 +170,7 @@
       "targets": [
         {
           "alias": "active VUs",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "activeVUs",
           "namespace": "LoadTest",
@@ -191,7 +191,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
       "fieldConfig": {
         "defaults": { "unit": "ms" },
         "overrides": [
@@ -212,7 +212,7 @@
       "targets": [
         {
           "alias": "p50",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "p50",
           "namespace": "LoadTest",
@@ -223,7 +223,7 @@
         },
         {
           "alias": "p95",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "p95",
           "namespace": "LoadTest",
@@ -234,7 +234,7 @@
         },
         {
           "alias": "p99",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "p99",
           "namespace": "LoadTest",
@@ -245,7 +245,7 @@
         },
         {
           "alias": "errorRate",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "errorRate",
           "namespace": "LoadTest",
@@ -256,7 +256,7 @@
         },
         {
           "alias": "throughput",
-          "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
           "dimensions": { "testId": "$testId" },
           "metricName": "throughput",
           "namespace": "LoadTest",
@@ -277,7 +277,7 @@
     "list": [
       {
         "current": {},
-        "datasource": { "type": "cloudwatch", "uid": "${DS_CLOUDWATCH}" },
+        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
         "definition": "",
         "hide": 0,
         "includeAll": false,
