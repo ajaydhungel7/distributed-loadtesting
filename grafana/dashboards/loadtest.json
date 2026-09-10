@@ -49,7 +49,7 @@
           "metricName": "p50",
           "metricQueryType": 0,
           "namespace": "LoadTest",
-          "period": "15",
+          "period": "60",
           "refId": "A",
           "region": "default",
           "statistic": "Average"
@@ -60,7 +60,7 @@
           "dimensions": { "testId": "$testId" },
           "metricName": "p95",
           "namespace": "LoadTest",
-          "period": "15",
+          "period": "60",
           "refId": "B",
           "region": "default",
           "statistic": "Average"
@@ -71,7 +71,7 @@
           "dimensions": { "testId": "$testId" },
           "metricName": "p99",
           "namespace": "LoadTest",
-          "period": "15",
+          "period": "60",
           "refId": "C",
           "region": "default",
           "statistic": "Average"
@@ -107,7 +107,7 @@
           "dimensions": { "testId": "$testId" },
           "metricName": "throughput",
           "namespace": "LoadTest",
-          "period": "15",
+          "period": "60",
           "refId": "A",
           "region": "default",
           "statistic": "Sum"
@@ -138,7 +138,7 @@
           "dimensions": { "testId": "$testId" },
           "metricName": "errorRate",
           "namespace": "LoadTest",
-          "period": "15",
+          "period": "60",
           "refId": "A",
           "region": "default",
           "statistic": "Average"
@@ -174,7 +174,7 @@
           "dimensions": { "testId": "$testId" },
           "metricName": "activeVUs",
           "namespace": "LoadTest",
-          "period": "15",
+          "period": "60",
           "refId": "A",
           "region": "default",
           "statistic": "Maximum"
