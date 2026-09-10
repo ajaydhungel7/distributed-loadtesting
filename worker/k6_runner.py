@@ -66,19 +66,23 @@ def run_k6(script: str) -> dict:
 
 
 def parse_k6_summary(summary: dict) -> dict:
-    """Extract key metrics from a k6 JSON summary."""
+    """Extract key metrics from a k6 JSON summary.
+
+    k6 --summary-export puts metric values directly on the metric object
+    (e.g. {"med": 3.1, "p(95)": 144.0, ...}), not nested under "values".
+    p50 is reported as "med" (the median).
+    """
     metrics = summary.get("metrics", {})
 
     def _get(metric_name: str, *keys: str):
         m = metrics.get(metric_name, {})
-        values = m.get("values", {})
         for key in keys:
-            if key in values:
-                return values[key]
+            if key in m:
+                return m[key]
         return None
 
     return {
-        "p50": _get("http_req_duration", "p(50)"),
+        "p50": _get("http_req_duration", "med", "p(50)"),
         "p95": _get("http_req_duration", "p(95)"),
         "p99": _get("http_req_duration", "p(99)"),
         "errorRate": _get("http_req_failed", "rate"),
