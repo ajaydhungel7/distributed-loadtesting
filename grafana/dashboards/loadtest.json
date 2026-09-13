@@ -189,18 +189,6 @@
         "uid": "cloudwatch"
       },
       "description": "Requests per second across all workers",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "blue",
-            "mode": "fixed"
-          },
-          "custom": {
-            "lineWidth": 2
-          },
-          "unit": "reqps"
-        }
-      },
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -209,13 +197,18 @@
       },
       "id": 2,
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "single"
-        }
+        "textMode": "auto"
       },
       "targets": [
         {
@@ -237,7 +230,13 @@
         }
       ],
       "title": "Throughput (req/s)",
-      "type": "timeseries"
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "datasource": {
@@ -245,20 +244,6 @@
         "uid": "cloudwatch"
       },
       "description": "Fraction of requests that returned an error",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "red",
-            "mode": "fixed"
-          },
-          "custom": {
-            "lineWidth": 2
-          },
-          "max": 1,
-          "min": 0,
-          "unit": "percentunit"
-        }
-      },
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -267,13 +252,18 @@
       },
       "id": 3,
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "single"
-        }
+        "textMode": "auto"
       },
       "targets": [
         {
@@ -295,7 +285,13 @@
         }
       ],
       "title": "Error Rate",
-      "type": "timeseries"
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      }
     },
     {
       "collapsed": false,
@@ -315,19 +311,6 @@
         "uid": "cloudwatch"
       },
       "description": "Number of active virtual users over time",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "purple",
-            "mode": "fixed"
-          },
-          "custom": {
-            "fillOpacity": 20,
-            "lineWidth": 2
-          },
-          "unit": "short"
-        }
-      },
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -336,13 +319,18 @@
       },
       "id": 4,
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "single"
-        }
+        "textMode": "auto"
       },
       "targets": [
         {
@@ -364,7 +352,13 @@
         }
       ],
       "title": "Active Virtual Users",
-      "type": "timeseries"
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "collapsed": false,
