@@ -6,84 +6,58 @@ import pytest
 
 def test_post_job_returns_202(client):
     c, sqs, queue_url = client
-    response = c.post("/jobs", json={
-        "name": "smoke-test",
-        "messageCount": 100,
-    })
+    response = c.post("/jobs", json={"name": "smoke-test", "messageCount": 10})
     assert response.status_code == 202
 
 
-def test_post_job_returns_job_id_and_pending_status(client):
+def test_post_job_returns_job_id_and_running_status(client):
     c, sqs, queue_url = client
-    response = c.post("/jobs", json={
-        "name": "smoke-test",
-        "messageCount": 100,
-    })
+    response = c.post("/jobs", json={"name": "smoke-test", "messageCount": 10})
     body = response.json()
     assert "jobId" in body
-    assert body["status"] == "PENDING"
+    assert body["status"] == "RUNNING"
 
 
-def test_post_job_returns_worker_count(client):
+def test_post_job_publishes_messages_to_target_queue(client):
     c, sqs, queue_url = client
-    # 2500 messages / 1000 per worker = 3 workers
-    response = c.post("/jobs", json={
-        "name": "big-job",
-        "messageCount": 2500,
-    })
-    body = response.json()
-    assert body["workerCount"] == 3
+    c.post("/jobs", json={"name": "flood-test", "messageCount": 25})
 
-
-def test_post_job_publishes_one_message_to_sqs_per_worker(client):
-    c, sqs, queue_url = client
-    # 2500 messages → 3 workers → 3 SQS messages
-    c.post("/jobs", json={"name": "fanout-test", "messageCount": 2500})
-
-    received = []
+    # Drain the queue
+    total = 0
     while True:
         resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10, WaitTimeSeconds=0)
         msgs = resp.get("Messages", [])
         if not msgs:
             break
-        received.extend(msgs)
+        total += len(msgs)
+        for m in msgs:
+            sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=m["ReceiptHandle"])
 
-    assert len(received) == 3
-    bodies = [json.loads(m["Body"]) for m in received]
-    worker_indices = sorted(b["workerIndex"] for b in bodies)
-    assert worker_indices == [0, 1, 2]
+    assert total == 25
 
 
-def test_post_job_sqs_message_has_required_fields(client):
+def test_post_job_message_has_job_id_and_processing_time(client):
     c, sqs, queue_url = client
-    c.post("/jobs", json={"name": "field-check", "messageCount": 100})
+    c.post("/jobs", json={"name": "field-check", "messageCount": 1, "processingTime": 200})
     resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
     body = json.loads(resp["Messages"][0]["Body"])
-    for field in ("jobId", "messageCount", "processingTime", "workerIndex", "workerCount", "createdAt"):
-        assert field in body
-
-
-def test_post_job_single_worker_for_small_count(client):
-    c, sqs, queue_url = client
-    response = c.post("/jobs", json={"name": "tiny", "messageCount": 50})
-    assert response.json()["workerCount"] == 1
+    assert "jobId" in body
+    assert body["processingTime"] == 200
 
 
 def test_post_job_rejects_zero_message_count(client):
     c, _, __ = client
-    response = c.post("/jobs", json={"name": "bad", "messageCount": 0})
-    assert response.status_code == 422
+    assert c.post("/jobs", json={"name": "bad", "messageCount": 0}).status_code == 422
 
 
 def test_post_job_rejects_negative_processing_time(client):
     c, _, __ = client
-    response = c.post("/jobs", json={"name": "bad", "messageCount": 10, "processingTime": -1})
-    assert response.status_code == 422
+    assert c.post("/jobs", json={"name": "bad", "messageCount": 10, "processingTime": -1}).status_code == 422
 
 
 def test_post_job_default_processing_time_is_zero(client):
     c, sqs, queue_url = client
-    c.post("/jobs", json={"name": "defaults", "messageCount": 10})
+    c.post("/jobs", json={"name": "defaults", "messageCount": 1})
     resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
     body = json.loads(resp["Messages"][0]["Body"])
     assert body["processingTime"] == 0
@@ -91,23 +65,18 @@ def test_post_job_default_processing_time_is_zero(client):
 
 # ── GET /jobs/{id} ────────────────────────────────────────────────────────────
 
-def test_get_job_by_id_returns_full_record(client):
+def test_get_job_returns_record(client):
     c, _, __ = client
-    create_resp = c.post("/jobs", json={"name": "my-job", "messageCount": 500})
-    job_id = create_resp.json()["jobId"]
-
-    get_resp = c.get(f"/jobs/{job_id}")
-    assert get_resp.status_code == 200
-    body = get_resp.json()
+    job_id = c.post("/jobs", json={"name": "my-job", "messageCount": 5}).json()["jobId"]
+    body = c.get(f"/jobs/{job_id}").json()
     assert body["jobId"] == job_id
-    assert body["status"] == "PENDING"
-    assert body["name"] == "my-job"
-    assert body["messageCount"] == 500
+    assert body["messageCount"] == 5
+    assert body["status"] == "RUNNING"
 
 
 def test_get_job_returns_404_for_unknown(client):
     c, _, __ = client
-    assert c.get("/jobs/nonexistent-id").status_code == 404
+    assert c.get("/jobs/nonexistent").status_code == 404
 
 
 # ── GET /jobs ─────────────────────────────────────────────────────────────────
@@ -115,37 +84,30 @@ def test_get_job_returns_404_for_unknown(client):
 def test_list_jobs_returns_all(client):
     c, _, __ = client
     for i in range(3):
-        c.post("/jobs", json={"name": f"job-{i}", "messageCount": 10})
-    response = c.get("/jobs")
-    assert response.status_code == 200
-    assert response.json()["count"] == 3
+        c.post("/jobs", json={"name": f"job-{i}", "messageCount": 5})
+    body = c.get("/jobs").json()
+    assert body["count"] == 3
 
 
 def test_list_jobs_filters_by_status(client):
     c, _, __ = client
-    c.post("/jobs", json={"name": "job-1", "messageCount": 10})
-    response = c.get("/jobs?status=PENDING")
-    items = response.json()["items"]
-    assert all(item["status"] == "PENDING" for item in items)
+    c.post("/jobs", json={"name": "job-1", "messageCount": 5})
+    items = c.get("/jobs?status=RUNNING").json()["items"]
+    assert all(item["status"] == "RUNNING" for item in items)
 
 
 # ── DELETE /jobs/{id} ─────────────────────────────────────────────────────────
 
-def test_cancel_pending_job(client):
+def test_cancel_running_job(client):
     c, _, __ = client
-    create_resp = c.post("/jobs", json={"name": "cancel-me", "messageCount": 10})
-    job_id = create_resp.json()["jobId"]
-
-    delete_resp = c.delete(f"/jobs/{job_id}")
-    assert delete_resp.status_code == 200
-
-    get_resp = c.get(f"/jobs/{job_id}")
-    assert get_resp.json()["status"] == "CANCELLED"
+    job_id = c.post("/jobs", json={"name": "cancel-me", "messageCount": 5}).json()["jobId"]
+    assert c.delete(f"/jobs/{job_id}").status_code == 200
+    assert c.get(f"/jobs/{job_id}").json()["status"] == "CANCELLED"
 
 
 def test_cancel_returns_404_for_unknown(client):
     c, _, __ = client
-    assert c.delete("/jobs/nonexistent-id").status_code == 404
+    assert c.delete("/jobs/nonexistent").status_code == 404
 
 
 # ── GET /health ───────────────────────────────────────────────────────────────

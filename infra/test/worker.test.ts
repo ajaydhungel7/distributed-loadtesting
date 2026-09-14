@@ -55,7 +55,6 @@ test('Worker container receives job config via environment', () => {
       Match.objectLike({
         Environment: Match.arrayWith([
           Match.objectLike({ Name: 'TABLE_NAME' }),
-          Match.objectLike({ Name: 'JOB_QUEUE_URL' }),
           Match.objectLike({ Name: 'TARGET_QUEUE_URL' }),
           Match.objectLike({ Name: 'RESULTS_BUCKET' }),
         ]),

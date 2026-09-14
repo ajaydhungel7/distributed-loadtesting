@@ -129,10 +129,11 @@ export class InfraStack extends cdk.Stack {
       description: 'Task role for the load test control plane (least privilege)',
     });
 
+    // Control plane floods the target queue when a job is submitted
     this.controlPlaneTaskRole.addToPolicy(new iam.PolicyStatement({
       sid: 'SQSSend',
-      actions: ['sqs:SendMessage', 'sqs:GetQueueAttributes', 'sqs:GetQueueUrl'],
-      resources: [this.jobQueue.queueArn],
+      actions: ['sqs:SendMessage', 'sqs:SendMessageBatch', 'sqs:GetQueueAttributes', 'sqs:GetQueueUrl'],
+      resources: [this.targetQueue.queueArn],
     }));
 
     this.controlPlaneTaskRole.addToPolicy(new iam.PolicyStatement({
@@ -153,6 +154,7 @@ export class InfraStack extends cdk.Stack {
       description: 'Task role for load test workers (least privilege)',
     });
 
+    // Workers consume from the target queue (the queue being load-tested)
     this.workerTaskRole.addToPolicy(new iam.PolicyStatement({
       sid: 'SQSConsume',
       actions: [
@@ -161,12 +163,6 @@ export class InfraStack extends cdk.Stack {
         'sqs:ChangeMessageVisibility',
         'sqs:GetQueueAttributes',
       ],
-      resources: [this.jobQueue.queueArn],
-    }));
-
-    this.workerTaskRole.addToPolicy(new iam.PolicyStatement({
-      sid: 'SQSPublish',
-      actions: ['sqs:SendMessage', 'sqs:SendMessageBatch', 'sqs:GetQueueAttributes'],
       resources: [this.targetQueue.queueArn],
     }));
 

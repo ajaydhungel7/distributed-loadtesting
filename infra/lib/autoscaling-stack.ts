@@ -17,12 +17,10 @@ export class AutoscalingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AutoscalingStackProps) {
     super(scope, id, props);
 
-    const { jobQueue } = props.infra;
+    const { targetQueue } = props.infra;
     const { service } = props.worker;
 
     // ── Scalable Target ───────────────────────────────────────────────────────
-    // Registers the worker ECS service as something App Auto Scaling can control.
-    // Workers scale between 0 (no cost at idle) and 50 tasks maximum.
     const scalableTarget = new appscaling.ScalableTarget(this, 'WorkerScalableTarget', {
       serviceNamespace: appscaling.ServiceNamespace.ECS,
       scalableDimension: 'ecs:service:DesiredCount',
@@ -31,11 +29,11 @@ export class AutoscalingStack extends cdk.Stack {
       maxCapacity: 50,
     });
 
-    // ── CloudWatch Metric ─────────────────────────────────────────────────────
+    // ── CloudWatch Metric — monitor target queue depth ────────────────────────
     const queueDepthMetric = new cloudwatch.Metric({
       namespace: 'AWS/SQS',
       metricName: 'ApproximateNumberOfMessagesVisible',
-      dimensionsMap: { QueueName: jobQueue.queueName },
+      dimensionsMap: { QueueName: targetQueue.queueName },
       statistic: 'Maximum',
       period: cdk.Duration.minutes(1),
     });

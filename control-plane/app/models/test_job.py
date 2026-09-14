@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -14,11 +13,8 @@ class JobStatus(str, Enum):
 
 
 class JobResults(BaseModel):
-    totalSent: Optional[int] = None
-    totalFailed: Optional[int] = None
-    durationSeconds: Optional[float] = None
-    throughput: Optional[float] = None        # messages/sec
-    avgProcessingMs: Optional[float] = None   # avg simulated processing time per message
+    totalProcessed: Optional[int] = None
+    avgProcessingMs: Optional[float] = None
 
 
 class CreateJobRequest(BaseModel):
@@ -36,8 +32,7 @@ class JobRecord(BaseModel):
     createdAt: str
     startedAt: Optional[str] = None
     completedAt: Optional[str] = None
-    workerCount: int = 0
-    completedWorkers: int = 0
+    processedCount: int = 0
     results: JobResults = JobResults()
 
 

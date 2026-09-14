@@ -1,7 +1,9 @@
+import json
 import math
 import os
 from datetime import datetime, timezone
 
+import boto3
 from fastapi import APIRouter, HTTPException
 from ulid import ULID
 
@@ -11,27 +13,45 @@ from app.models.test_job import (
     JobListResponse,
     JobStatus,
 )
-from app.services import dynamodb, sqs
+from app.services import dynamodb
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-# Max messages each worker will be asked to send
-MESSAGES_PER_WORKER = int(os.environ.get("MESSAGES_PER_WORKER", "1000"))
+TARGET_QUEUE_URL = os.environ["TARGET_QUEUE_URL"]
+_sqs = boto3.client("sqs", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+
+SQS_BATCH_SIZE = 10
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _publish_messages(job_id: str, message_count: int, processing_time: int) -> None:
+    """Publish all messages to the target queue in batches of 10."""
+    remaining = message_count
+    batch_num = 0
+    while remaining > 0:
+        batch_size = min(SQS_BATCH_SIZE, remaining)
+        entries = [
+            {
+                "Id": str(i),
+                "MessageBody": json.dumps({
+                    "jobId": job_id,
+                    "processingTime": processing_time,
+                }),
+            }
+            for i in range(batch_size)
+        ]
+        _sqs.send_message_batch(QueueUrl=TARGET_QUEUE_URL, Entries=entries)
+        remaining -= batch_size
+        batch_num += 1
+
+
 @router.post("", status_code=202)
 def create_job(body: CreateJobRequest) -> dict:
     job_id = str(ULID())
     created_at = _now()
-
-    # Fan-out: split messageCount across workers
-    worker_count = math.ceil(body.messageCount / MESSAGES_PER_WORKER)
-    base_messages = body.messageCount // worker_count
-    remainder = body.messageCount % worker_count
 
     item = {
         "jobId": job_id,
@@ -42,28 +62,18 @@ def create_job(body: CreateJobRequest) -> dict:
         "createdAt": created_at,
         "startedAt": None,
         "completedAt": None,
-        "workerCount": worker_count,
-        "completedWorkers": 0,
-        "workerResults": {},
+        "processedCount": 0,
         "results": {},
     }
 
     dynamodb.put_item(item)
 
-    # Each worker gets base_messages; first worker gets the remainder too
-    for i in range(worker_count):
-        worker_messages = base_messages + (remainder if i == 0 else 0)
-        sqs.send_job({
-            "jobId": job_id,
-            "name": body.name,
-            "messageCount": worker_messages,
-            "processingTime": body.processingTime,
-            "workerIndex": i,
-            "workerCount": worker_count,
-            "createdAt": created_at,
-        })
+    # Flood the target queue — this triggers autoscaling
+    _publish_messages(job_id, body.messageCount, body.processingTime)
 
-    return {"jobId": job_id, "status": JobStatus.PENDING.value, "workerCount": worker_count}
+    dynamodb.update_status(job_id, created_at, JobStatus.RUNNING.value, {"startedAt": created_at})
+
+    return {"jobId": job_id, "status": JobStatus.RUNNING.value}
 
 
 @router.get("/{job_id}")

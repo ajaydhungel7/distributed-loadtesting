@@ -59,7 +59,6 @@ export class WorkerStack extends cdk.Stack {
       essential: true,
       environment: {
         TABLE_NAME: 'queue-jobs',
-        JOB_QUEUE_URL: jobQueue.queueUrl,
         TARGET_QUEUE_URL: targetQueueUrl,
         RESULTS_BUCKET: resultsBucket.bucketName,
         AWS_REGION: this.region,

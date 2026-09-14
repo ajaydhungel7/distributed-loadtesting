@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
 os.environ.setdefault("TABLE_NAME", "queue-jobs")
-os.environ.setdefault("JOB_QUEUE_URL", "placeholder")
+os.environ.setdefault("TARGET_QUEUE_URL", "placeholder")
 
 
 @pytest.fixture(autouse=True)
@@ -51,9 +51,9 @@ def dynamodb_table():
 def sqs_queue():
     with mock_aws():
         sqs = boto3.client("sqs", region_name="us-east-1")
-        response = sqs.create_queue(QueueName="loadtest-jobs")
+        response = sqs.create_queue(QueueName="loadtest-target")
         queue_url = response["QueueUrl"]
-        os.environ["JOB_QUEUE_URL"] = queue_url
+        os.environ["TARGET_QUEUE_URL"] = queue_url
         yield sqs, queue_url
 
 
