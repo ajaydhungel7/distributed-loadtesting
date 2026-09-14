@@ -40,10 +40,33 @@ jobs:
         run: pip install -q -r requirements-dev.txt && pytest tests/ -q
         working-directory: worker
 
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      control-plane: ${{ steps.filter.outputs.control-plane }}
+      worker: ${{ steps.filter.outputs.worker }}
+      grafana: ${{ steps.filter.outputs.grafana }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            control-plane:
+              - 'control-plane/**'
+            worker:
+              - 'worker/**'
+            grafana:
+              - 'grafana/**'
+            infra:
+              - 'infra/**'
+
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, changes]
     steps:
       - uses: actions/checkout@v4
 
@@ -74,8 +97,9 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Build and push all three images in parallel
+      # Only rebuild images when their source changed
       - name: Build and push control-plane image
+        if: needs.changes.outputs.control-plane == 'true'
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
         run: |
@@ -86,6 +110,7 @@ jobs:
         working-directory: control-plane
 
       - name: Build and push worker image
+        if: needs.changes.outputs.worker == 'true'
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
         run: |
@@ -96,6 +121,7 @@ jobs:
         working-directory: worker
 
       - name: Build and push grafana image
+        if: needs.changes.outputs.grafana == 'true'
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
         run: |
@@ -105,11 +131,17 @@ jobs:
           docker push $ECR_REGISTRY/loadtest/grafana:latest
         working-directory: grafana
 
-      # Deploy remaining stacks — images now exist in ECR
+      # Deploy CDK stacks:
+      # - Pass imageTag=sha when the image was rebuilt (forces new task def → rolling ECS deploy)
+      # - Pass imageTag=latest when image unchanged (CDK sees no diff, skips ECS update unless CDK code changed)
       - name: Deploy application stacks
+        env:
+          CP_TAG: ${{ needs.changes.outputs.control-plane == 'true' && github.sha || 'latest' }}
+          WORKER_TAG: ${{ needs.changes.outputs.worker == 'true' && github.sha || 'latest' }}
+          GRAFANA_TAG: ${{ needs.changes.outputs.grafana == 'true' && github.sha || 'latest' }}
         run: |
-          npx cdk deploy ControlPlaneStack --require-approval never
-          npx cdk deploy WorkerStack       --require-approval never
+          npx cdk deploy ControlPlaneStack --context imageTag=$CP_TAG      --require-approval never
+          npx cdk deploy WorkerStack       --context imageTag=$WORKER_TAG  --require-approval never
           npx cdk deploy AutoscalingStack  --require-approval never
-          npx cdk deploy GrafanaStack      --require-approval never
+          npx cdk deploy GrafanaStack      --context imageTag=$GRAFANA_TAG --require-approval never
         working-directory: infra

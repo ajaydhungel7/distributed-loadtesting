@@ -57,8 +57,10 @@ export class ControlPlaneStack extends cdk.Stack {
       executionRole,
     });
 
+    const imageTag = this.node.tryGetContext('imageTag') ?? 'latest';
+
     taskDef.addContainer('control-plane', {
-      image: ecs.ContainerImage.fromEcrRepository(controlPlaneRepo, 'latest'),
+      image: ecs.ContainerImage.fromEcrRepository(controlPlaneRepo, imageTag),
       essential: true,
       portMappings: [{ containerPort: 8000, protocol: ecs.Protocol.TCP }],
       environment: {

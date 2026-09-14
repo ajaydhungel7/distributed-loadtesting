@@ -76,9 +76,11 @@ export class GrafanaStack extends cdk.Stack {
       executionRole,
     });
 
+    const imageTag = this.node.tryGetContext('imageTag') ?? 'latest';
+
     taskDef.addContainer('grafana', {
       // Custom image baked with datasource + dashboard provisioning files
-      image: ecs.ContainerImage.fromEcrRepository(grafanaRepo, 'latest'),
+      image: ecs.ContainerImage.fromEcrRepository(grafanaRepo, imageTag),
       essential: true,
       portMappings: [{ containerPort: 3000, protocol: ecs.Protocol.TCP }],
       environment: {

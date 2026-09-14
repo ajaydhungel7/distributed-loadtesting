@@ -54,8 +54,10 @@ export class WorkerStack extends cdk.Stack {
       executionRole,
     });
 
+    const imageTag = this.node.tryGetContext('imageTag') ?? 'latest';
+
     this.taskDefinition.addContainer('worker', {
-      image: ecs.ContainerImage.fromEcrRepository(workerRepo, 'latest'),
+      image: ecs.ContainerImage.fromEcrRepository(workerRepo, imageTag),
       essential: true,
       environment: {
         TABLE_NAME: 'queue-jobs',
