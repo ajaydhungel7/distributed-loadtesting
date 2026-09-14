@@ -44,6 +44,7 @@ def create_job(body: CreateJobRequest) -> dict:
         "completedAt": None,
         "workerCount": worker_count,
         "completedWorkers": 0,
+        "workerResults": {},
         "results": {},
     }
 

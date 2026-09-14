@@ -150,9 +150,9 @@ def report_worker_done(job: dict, worker_index: int, result: dict) -> int:
     }
     response = _table.update_item(
         Key={"jobId": job["jobId"], "createdAt": job["createdAt"]},
-        UpdateExpression="ADD completedWorkers :one SET workerResults.#wi = :r",
+        UpdateExpression="ADD completedWorkers :one SET workerResults = if_not_exists(workerResults, :empty), workerResults.#wi = :r",
         ExpressionAttributeNames={"#wi": str(worker_index)},
-        ExpressionAttributeValues={":one": 1, ":r": ddb_result},
+        ExpressionAttributeValues={":one": 1, ":r": ddb_result, ":empty": {}},
         ReturnValues="ALL_NEW",
     )
     return int(response["Attributes"]["completedWorkers"])
