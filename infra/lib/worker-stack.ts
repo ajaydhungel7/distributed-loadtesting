@@ -56,7 +56,7 @@ export class WorkerStack extends cdk.Stack {
       image: ecs.ContainerImage.fromEcrRepository(workerRepo, 'latest'),
       essential: true,
       environment: {
-        TABLE_NAME: table.tableName,
+        TABLE_NAME: 'queue-jobs',
         JOB_QUEUE_URL: jobQueue.queueUrl,
         TARGET_QUEUE_URL: targetQueue.queueUrl,
         RESULTS_BUCKET: resultsBucket.bucketName,

@@ -62,7 +62,7 @@ export class ControlPlaneStack extends cdk.Stack {
       essential: true,
       portMappings: [{ containerPort: 8000, protocol: ecs.Protocol.TCP }],
       environment: {
-        TABLE_NAME: table.tableName,
+        TABLE_NAME: 'queue-jobs',
         JOB_QUEUE_URL: jobQueue.queueUrl,
         AWS_REGION: this.region,
       },
