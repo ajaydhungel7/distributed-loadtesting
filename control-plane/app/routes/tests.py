@@ -1,18 +1,22 @@
+import math
+import os
 from datetime import datetime, timezone
-from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException
 from ulid import ULID
 
 from app.models.test_job import (
-    CreateTestRequest,
-    TestJob,
-    TestListResponse,
-    TestStatus,
+    CreateJobRequest,
+    JobRecord,
+    JobListResponse,
+    JobStatus,
 )
 from app.services import dynamodb, sqs
 
-router = APIRouter(prefix="/tests", tags=["tests"])
+router = APIRouter(prefix="/jobs", tags=["jobs"])
+
+# Max messages each worker will be asked to send
+MESSAGES_PER_WORKER = int(os.environ.get("MESSAGES_PER_WORKER", "1000"))
 
 
 def _now() -> str:
@@ -20,68 +24,70 @@ def _now() -> str:
 
 
 @router.post("", status_code=202)
-def create_test(body: CreateTestRequest) -> dict:
-    # SSRF guard — validator raises ValueError; convert to 400 here
-    parsed = urlparse(body.targetUrl)
-    from app.models.test_job import _is_private_host
-    if _is_private_host(parsed.hostname or ""):
-        raise HTTPException(status_code=400, detail="targetUrl resolves to a private or reserved IP range")
-
-    test_id = str(ULID())
+def create_job(body: CreateJobRequest) -> dict:
+    job_id = str(ULID())
     created_at = _now()
 
+    # Fan-out: split messageCount across workers
+    worker_count = math.ceil(body.messageCount / MESSAGES_PER_WORKER)
+    base_messages = body.messageCount // worker_count
+    remainder = body.messageCount % worker_count
+
     item = {
-        "testId": test_id,
+        "jobId": job_id,
         "name": body.name,
-        "targetUrl": body.targetUrl,
-        "virtualUsers": body.virtualUsers,
-        "duration": body.duration,
-        "rampUp": body.rampUp,
-        "status": TestStatus.PENDING.value,
+        "messageCount": body.messageCount,
+        "processingTime": body.processingTime,
+        "status": JobStatus.PENDING.value,
         "createdAt": created_at,
         "startedAt": None,
         "completedAt": None,
-        "workerCount": 0,
+        "workerCount": worker_count,
+        "completedWorkers": 0,
         "results": {},
     }
 
     dynamodb.put_item(item)
-    sqs.send_job({
-        "testId": test_id,
-        "name": body.name,
-        "targetUrl": body.targetUrl,
-        "virtualUsers": body.virtualUsers,
-        "duration": body.duration,
-        "rampUp": body.rampUp,
-        "createdAt": created_at,
-    })
 
-    return {"testId": test_id, "status": TestStatus.PENDING.value}
+    # Each worker gets base_messages; first worker gets the remainder too
+    for i in range(worker_count):
+        worker_messages = base_messages + (remainder if i == 0 else 0)
+        sqs.send_job({
+            "jobId": job_id,
+            "name": body.name,
+            "messageCount": worker_messages,
+            "processingTime": body.processingTime,
+            "workerIndex": i,
+            "workerCount": worker_count,
+            "createdAt": created_at,
+        })
+
+    return {"jobId": job_id, "status": JobStatus.PENDING.value, "workerCount": worker_count}
 
 
-@router.get("/{test_id}")
-def get_test(test_id: str) -> dict:
-    item = dynamodb.get_item(test_id)
+@router.get("/{job_id}")
+def get_job(job_id: str) -> dict:
+    item = dynamodb.get_item(job_id)
     if not item:
-        raise HTTPException(status_code=404, detail=f"Test '{test_id}' not found")
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
     return item
 
 
 @router.get("")
-def list_tests(status: str | None = None) -> TestListResponse:
+def list_jobs(status: str | None = None) -> JobListResponse:
     items = dynamodb.list_items(status=status)
-    return TestListResponse(items=items, count=len(items))
+    return JobListResponse(items=items, count=len(items))
 
 
-@router.delete("/{test_id}")
-def cancel_test(test_id: str) -> dict:
-    item = dynamodb.get_item(test_id)
+@router.delete("/{job_id}")
+def cancel_job(job_id: str) -> dict:
+    item = dynamodb.get_item(job_id)
     if not item:
-        raise HTTPException(status_code=404, detail=f"Test '{test_id}' not found")
-    if item["status"] not in (TestStatus.PENDING.value, TestStatus.RUNNING.value):
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    if item["status"] not in (JobStatus.PENDING.value, JobStatus.RUNNING.value):
         raise HTTPException(
             status_code=409,
-            detail=f"Cannot cancel a test in '{item['status']}' state",
+            detail=f"Cannot cancel a job in '{item['status']}' state",
         )
-    dynamodb.update_status(test_id, item["createdAt"], TestStatus.CANCELLED.value)
-    return {"testId": test_id, "status": TestStatus.CANCELLED.value}
+    dynamodb.update_status(job_id, item["createdAt"], JobStatus.CANCELLED.value)
+    return {"jobId": job_id, "status": JobStatus.CANCELLED.value}

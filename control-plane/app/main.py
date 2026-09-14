@@ -2,11 +2,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from app.routes.tests import router as tests_router
+from app.routes.tests import router as jobs_router
 
-app = FastAPI(title="Load Test Control Plane", version="1.0.0")
+app = FastAPI(title="Distributed Queue Autoscaling Platform", version="2.0.0")
 
-app.include_router(tests_router)
+app.include_router(jobs_router)
 
 
 @app.get("/health")

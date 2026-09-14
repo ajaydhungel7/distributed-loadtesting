@@ -50,7 +50,7 @@ test('DynamoDB table is created with correct key schema', () => {
   template.hasResourceProperties('AWS::DynamoDB::Table', {
     TableName: 'load-tests',
     KeySchema: Match.arrayWith([
-      { AttributeName: 'testId', KeyType: 'HASH' },
+      { AttributeName: 'jobId', KeyType: 'HASH' },
       { AttributeName: 'createdAt', KeyType: 'RANGE' },
     ]),
     BillingMode: 'PAY_PER_REQUEST',
@@ -137,6 +137,12 @@ test('SQS job queue is created with SSE', () => {
 test('SQS DLQ is created', () => {
   template.hasResourceProperties('AWS::SQS::Queue', {
     QueueName: 'loadtest-jobs-dlq',
+  });
+});
+
+test('SQS target queue is created', () => {
+  template.hasResourceProperties('AWS::SQS::Queue', {
+    QueueName: 'loadtest-target',
   });
 });
 

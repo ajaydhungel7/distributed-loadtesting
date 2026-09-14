@@ -8,576 +8,318 @@
       "version": "1.0.0"
     }
   ],
-  "annotations": {
-    "list": []
-  },
-  "description": "Real-time metrics for distributed load tests",
+  "annotations": { "list": [] },
+  "description": "Distributed Queue Autoscaling Platform — job metrics and queue depth",
   "editable": false,
-  "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [],
   "panels": [
     {
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 10,
-      "title": "Response Time",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Queue Depth",
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "cloudwatch",
-        "uid": "cloudwatch"
-      },
-      "description": "HTTP response time percentiles across all workers for this test",
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "description": "Number of messages waiting in the target queue — the key autoscaling signal",
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 2
-          },
-          "unit": "ms"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "p50"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "p95"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "orange",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "p99"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "red",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "short" },
+        "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 1
-      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 1 },
       "id": 1,
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
       },
       "targets": [
         {
-          "alias": "p50",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "expression": "",
-          "id": "",
-          "matchExact": false,
-          "metricEditorMode": 0,
-          "metricKind": 0,
-          "metricName": "p50",
-          "metricQueryType": 0,
-          "namespace": "LoadTest",
+          "alias": "Queue Depth",
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+          "dimensions": { "QueueName": "loadtest-target" },
+          "matchExact": true,
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "namespace": "AWS/SQS",
           "period": "60",
           "refId": "A",
           "region": "default",
-          "statistic": "Average"
-        },
-        {
-          "alias": "p95",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "p95",
-          "namespace": "LoadTest",
-          "period": "60",
-          "refId": "B",
-          "region": "default",
-          "statistic": "Average",
-          "matchExact": false
-        },
-        {
-          "alias": "p99",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "p99",
-          "namespace": "LoadTest",
-          "period": "60",
-          "refId": "C",
-          "region": "default",
-          "statistic": "Average",
-          "matchExact": false
+          "statistic": "Maximum"
         }
       ],
-      "title": "Response Time (ms)",
+      "title": "Target Queue Depth",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 9
-      },
-      "id": 11,
-      "title": "Throughput & Errors",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 101,
+      "title": "Worker Scaling",
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "cloudwatch",
-        "uid": "cloudwatch"
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "description": "Number of running ECS worker tasks — shows autoscaler responding to queue depth",
+      "fieldConfig": {
+        "defaults": { "color": { "fixedColor": "orange", "mode": "fixed" }, "custom": { "lineWidth": 2 }, "unit": "short" },
+        "overrides": []
       },
-      "description": "Requests per second across all workers",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 10
-      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 10 },
       "id": 2,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
       },
       "targets": [
         {
-          "alias": "req/s",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "throughput",
-          "namespace": "LoadTest",
+          "alias": "Running Workers",
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+          "dimensions": { "ClusterName": "loadtest", "ServiceName": "WorkerStack-WorkerService*" },
+          "matchExact": false,
+          "metricName": "RunningTaskCount",
+          "namespace": "ECS/ContainerInsights",
           "period": "60",
           "refId": "A",
           "region": "default",
-          "statistic": "Sum",
-          "matchExact": false
+          "statistic": "Maximum"
         }
       ],
-      "title": "Throughput (req/s)",
-      "type": "stat",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps"
-        },
-        "overrides": []
-      }
+      "title": "Active Worker Count",
+      "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "cloudwatch",
-        "uid": "cloudwatch"
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "title": "Publish Throughput",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "description": "Messages published to the target queue per second (from SQS NumberOfMessagesSent)",
+      "fieldConfig": {
+        "defaults": { "color": { "fixedColor": "green", "mode": "fixed" }, "custom": { "lineWidth": 2 }, "unit": "mps" },
+        "overrides": []
       },
-      "description": "Fraction of requests that returned an error",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 10
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
       "id": 3,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
       },
       "targets": [
         {
-          "alias": "error rate",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "errorRate",
-          "namespace": "LoadTest",
+          "alias": "Sent/s",
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+          "dimensions": { "QueueName": "loadtest-target" },
+          "matchExact": true,
+          "metricName": "NumberOfMessagesSent",
+          "namespace": "AWS/SQS",
           "period": "60",
           "refId": "A",
           "region": "default",
-          "statistic": "Average",
-          "matchExact": false
+          "statistic": "Sum"
         }
       ],
-      "title": "Error Rate",
-      "type": "stat",
+      "title": "Messages Sent/min",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "description": "Age of the oldest unprocessed message — shows consumer lag",
       "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit"
-        },
+        "defaults": { "color": { "fixedColor": "red", "mode": "fixed" }, "custom": { "lineWidth": 2 }, "unit": "s" },
         "overrides": []
-      }
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 18
       },
-      "id": 12,
-      "title": "Virtual Users",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "cloudwatch",
-        "uid": "cloudwatch"
-      },
-      "description": "Number of active virtual users over time",
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 19
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
       "id": 4,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
       },
       "targets": [
         {
-          "alias": "active VUs",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "activeVUs",
-          "namespace": "LoadTest",
+          "alias": "Oldest Message Age",
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+          "dimensions": { "QueueName": "loadtest-target" },
+          "matchExact": true,
+          "metricName": "ApproximateAgeOfOldestMessage",
+          "namespace": "AWS/SQS",
           "period": "60",
           "refId": "A",
           "region": "default",
-          "statistic": "Maximum",
-          "matchExact": false
+          "statistic": "Maximum"
         }
       ],
-      "title": "Active Virtual Users",
-      "type": "stat",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
-      }
+      "title": "Consumer Lag (oldest message age)",
+      "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 27
-      },
-      "id": 13,
-      "title": "Summary Stats",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "id": 103,
+      "title": "Job Summary",
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "cloudwatch",
-        "uid": "cloudwatch"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "errorRate"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "percentunit"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "throughput"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "reqps"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 24,
-        "x": 0,
-        "y": 28
-      },
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "description": "Total messages successfully sent by all workers for this job",
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 28 },
       "id": 5,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "center",
         "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
         "textMode": "auto"
       },
       "targets": [
         {
-          "alias": "p50",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "p50",
-          "namespace": "LoadTest",
+          "alias": "total sent",
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+          "dimensions": { "jobId": "$jobId" },
+          "matchExact": false,
+          "metricName": "totalSent",
+          "namespace": "QueueScaling",
           "period": "60",
           "refId": "A",
           "region": "default",
-          "statistic": "Average",
-          "matchExact": false
-        },
-        {
-          "alias": "p95",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "p95",
-          "namespace": "LoadTest",
-          "period": "60",
-          "refId": "B",
-          "region": "default",
-          "statistic": "Average",
-          "matchExact": false
-        },
-        {
-          "alias": "p99",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "p99",
-          "namespace": "LoadTest",
-          "period": "60",
-          "refId": "C",
-          "region": "default",
-          "statistic": "Average",
-          "matchExact": false
-        },
-        {
-          "alias": "errorRate",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "errorRate",
-          "namespace": "LoadTest",
-          "period": "60",
-          "refId": "D",
-          "region": "default",
-          "statistic": "Average",
-          "matchExact": false
-        },
-        {
-          "alias": "throughput",
-          "datasource": {
-            "type": "cloudwatch",
-            "uid": "cloudwatch"
-          },
-          "dimensions": {
-            "testId": "$testId"
-          },
-          "metricName": "throughput",
-          "namespace": "LoadTest",
-          "period": "60",
-          "refId": "E",
-          "region": "default",
-          "statistic": "Sum",
-          "matchExact": false
+          "statistic": "Sum"
         }
       ],
-      "title": "Test Summary",
+      "title": "Total Messages Sent",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "description": "Total messages that failed to publish",
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 28 },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "alias": "total failed",
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+          "dimensions": { "jobId": "$jobId" },
+          "matchExact": false,
+          "metricName": "totalFailed",
+          "namespace": "QueueScaling",
+          "period": "60",
+          "refId": "A",
+          "region": "default",
+          "statistic": "Sum"
+        }
+      ],
+      "title": "Total Messages Failed",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "description": "Aggregate publish rate across all workers",
+      "fieldConfig": { "defaults": { "unit": "mps" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 28 },
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "alias": "throughput",
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+          "dimensions": { "jobId": "$jobId" },
+          "matchExact": false,
+          "metricName": "throughput",
+          "namespace": "QueueScaling",
+          "period": "60",
+          "refId": "A",
+          "region": "default",
+          "statistic": "Sum"
+        }
+      ],
+      "title": "Publish Throughput (msg/s)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+      "description": "How long the job took to publish all messages",
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 28 },
+      "id": 8,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["max"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "alias": "duration",
+          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+          "dimensions": { "jobId": "$jobId" },
+          "matchExact": false,
+          "metricName": "durationSeconds",
+          "namespace": "QueueScaling",
+          "period": "60",
+          "refId": "A",
+          "region": "default",
+          "statistic": "Maximum"
+        }
+      ],
+      "title": "Job Duration (s)",
       "type": "stat"
     }
   ],
   "refresh": "15s",
   "schemaVersion": 38,
-  "tags": [
-    "loadtest",
-    "k6",
-    "performance"
-  ],
+  "tags": ["queue", "autoscaling", "distributed"],
   "templating": {
     "list": [
       {
         "current": {},
-        "datasource": {
-          "type": "cloudwatch",
-          "uid": "cloudwatch"
-        },
+        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
         "definition": "",
         "hide": 0,
         "includeAll": false,
-        "label": "Test ID",
+        "label": "Job ID",
         "multi": false,
-        "name": "testId",
+        "name": "jobId",
         "options": [],
         "query": {
           "dimensionFilters": {},
-          "dimensionKey": "testId",
-          "metricName": "p50",
-          "namespace": "LoadTest",
+          "dimensionKey": "jobId",
+          "metricName": "totalSent",
+          "namespace": "QueueScaling",
           "queryType": "dimensionValues",
           "region": "default"
         },
         "refresh": 2,
         "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "CloudWatch",
-          "value": "CloudWatch"
-        },
-        "hide": 2,
-        "includeAll": false,
-        "label": "CloudWatch Datasource",
-        "multi": false,
-        "name": "DS_CLOUDWATCH",
-        "options": [],
-        "query": "cloudwatch",
-        "refresh": 1,
-        "type": "datasource"
       }
     ]
   },
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  },
+  "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Load Test Dashboard",
-  "uid": "loadtest-main",
+  "title": "Distributed Queue Autoscaling Platform",
+  "uid": "queue-autoscaling",
   "version": 1
 }

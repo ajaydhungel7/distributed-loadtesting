@@ -15,6 +15,7 @@ export class InfraStack extends cdk.Stack {
   public readonly table: dynamodb.Table;
   public readonly resultsBucket: s3.Bucket;
   public readonly jobQueue: sqs.Queue;
+  public readonly targetQueue: sqs.Queue;
   public readonly dlq: sqs.Queue;
   public readonly controlPlaneTaskRole: iam.Role;
   public readonly workerTaskRole: iam.Role;
@@ -57,7 +58,7 @@ export class InfraStack extends cdk.Stack {
     // ── DynamoDB ─────────────────────────────────────────────────────────────
     this.table = new dynamodb.Table(this, 'LoadTestsTable', {
       tableName: 'load-tests',
-      partitionKey: { name: 'testId', type: dynamodb.AttributeType.STRING },
+      partitionKey: { name: 'jobId', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'createdAt', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
@@ -110,6 +111,15 @@ export class InfraStack extends cdk.Stack {
       },
     });
 
+    // Target queue — workers flood this with messages to showcase autoscaling
+    this.targetQueue = new sqs.Queue(this, 'TargetQueue', {
+      queueName: 'loadtest-target',
+      visibilityTimeout: cdk.Duration.seconds(30),
+      retentionPeriod: cdk.Duration.hours(1),
+      enforceSSL: true,
+      encryption: sqs.QueueEncryption.SQS_MANAGED,
+    });
+
     // ── IAM Roles ─────────────────────────────────────────────────────────────
     const ecsTaskPrincipal = new iam.ServicePrincipal('ecs-tasks.amazonaws.com');
 
@@ -155,9 +165,15 @@ export class InfraStack extends cdk.Stack {
     }));
 
     this.workerTaskRole.addToPolicy(new iam.PolicyStatement({
+      sid: 'SQSPublish',
+      actions: ['sqs:SendMessage', 'sqs:SendMessageBatch', 'sqs:GetQueueAttributes'],
+      resources: [this.targetQueue.queueArn],
+    }));
+
+    this.workerTaskRole.addToPolicy(new iam.PolicyStatement({
       sid: 'DynamoDBWrite',
-      actions: ['dynamodb:PutItem', 'dynamodb:UpdateItem'],
-      resources: [this.table.tableArn],
+      actions: ['dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:Query'],
+      resources: [this.table.tableArn, `${this.table.tableArn}/index/*`],
     }));
 
     this.workerTaskRole.addToPolicy(new iam.PolicyStatement({
@@ -236,6 +252,7 @@ export class InfraStack extends cdk.Stack {
     // ── Stack Outputs ─────────────────────────────────────────────────────────
     new cdk.CfnOutput(this, 'VpcId', { value: this.vpc.vpcId });
     new cdk.CfnOutput(this, 'JobQueueUrl', { value: this.jobQueue.queueUrl });
+    new cdk.CfnOutput(this, 'TargetQueueUrl', { value: this.targetQueue.queueUrl });
     new cdk.CfnOutput(this, 'TableName', { value: this.table.tableName });
     new cdk.CfnOutput(this, 'ResultsBucketName', { value: this.resultsBucket.bucketName });
     new cdk.CfnOutput(this, 'ControlPlaneRepoUri', { value: this.controlPlaneRepo.repositoryUri });

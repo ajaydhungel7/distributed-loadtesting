@@ -18,7 +18,7 @@ export class WorkerStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: WorkerStackProps) {
     super(scope, id, props);
 
-    const { workerRepo, table, jobQueue, resultsBucket, vpc } = props.infra;
+    const { workerRepo, table, jobQueue, targetQueue, resultsBucket, vpc } = props.infra;
     const { cluster } = props;
 
     // ── CloudWatch Log Group ──────────────────────────────────────────────────
@@ -58,6 +58,7 @@ export class WorkerStack extends cdk.Stack {
       environment: {
         TABLE_NAME: table.tableName,
         JOB_QUEUE_URL: jobQueue.queueUrl,
+        TARGET_QUEUE_URL: targetQueue.queueUrl,
         RESULTS_BUCKET: resultsBucket.bucketName,
         AWS_REGION: this.region,
       },

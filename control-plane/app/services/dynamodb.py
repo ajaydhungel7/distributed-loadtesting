@@ -27,10 +27,10 @@ def _deserialize(item: dict) -> dict:
     return result
 
 
-def get_item(test_id: str) -> Optional[dict]:
-    """Fetch the most recent record for a testId (latest createdAt via scan + filter)."""
+def get_item(job_id: str) -> Optional[dict]:
+    """Fetch the most recent record for a jobId."""
     response = _table.query(
-        KeyConditionExpression=Key("testId").eq(test_id),
+        KeyConditionExpression=Key("jobId").eq(job_id),
         ScanIndexForward=False,
         Limit=1,
     )
@@ -38,7 +38,7 @@ def get_item(test_id: str) -> Optional[dict]:
     return _deserialize(items[0]) if items else None
 
 
-def update_status(test_id: str, created_at: str, status: str, extra: Optional[dict] = None) -> None:
+def update_status(job_id: str, created_at: str, status: str, extra: Optional[dict] = None) -> None:
     update_expr = "SET #s = :s"
     expr_names = {"#s": "status"}
     expr_values = {":s": status}
@@ -50,7 +50,7 @@ def update_status(test_id: str, created_at: str, status: str, extra: Optional[di
             expr_values[f":{k}"] = v
 
     _table.update_item(
-        Key={"testId": test_id, "createdAt": created_at},
+        Key={"jobId": job_id, "createdAt": created_at},
         UpdateExpression=update_expr,
         ExpressionAttributeNames=expr_names,
         ExpressionAttributeValues=expr_values,
