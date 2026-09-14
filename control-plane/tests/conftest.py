@@ -5,7 +5,7 @@ from moto import mock_aws
 from fastapi.testclient import TestClient
 
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
-os.environ.setdefault("TABLE_NAME", "load-tests")
+os.environ.setdefault("TABLE_NAME", "queue-jobs")
 os.environ.setdefault("JOB_QUEUE_URL", "placeholder")
 
 
@@ -22,7 +22,7 @@ def dynamodb_table():
     with mock_aws():
         ddb = boto3.resource("dynamodb", region_name="us-east-1")
         ddb.create_table(
-            TableName="load-tests",
+            TableName="queue-jobs",
             KeySchema=[
                 {"AttributeName": "jobId", "KeyType": "HASH"},
                 {"AttributeName": "createdAt", "KeyType": "RANGE"},

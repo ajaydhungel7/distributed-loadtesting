@@ -13,7 +13,7 @@ def aws_resources():
         # DynamoDB
         ddb = boto3.resource("dynamodb", region_name="us-east-1")
         table = ddb.create_table(
-            TableName="load-tests",
+            TableName="queue-jobs",
             KeySchema=[
                 {"AttributeName": "jobId", "KeyType": "HASH"},
                 {"AttributeName": "createdAt", "KeyType": "RANGE"},

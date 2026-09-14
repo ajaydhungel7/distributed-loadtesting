@@ -48,7 +48,7 @@ test('ECR repo for grafana exists', () => {
 
 test('DynamoDB table is created with correct key schema', () => {
   template.hasResourceProperties('AWS::DynamoDB::Table', {
-    TableName: 'load-tests',
+    TableName: 'queue-jobs',
     KeySchema: Match.arrayWith([
       { AttributeName: 'jobId', KeyType: 'HASH' },
       { AttributeName: 'createdAt', KeyType: 'RANGE' },

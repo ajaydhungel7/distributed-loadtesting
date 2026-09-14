@@ -5,7 +5,7 @@ from moto import mock_aws
 
 # Application config — not credentials
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
-os.environ.setdefault("TABLE_NAME", "load-tests")
+os.environ.setdefault("TABLE_NAME", "queue-jobs")
 os.environ.setdefault("RESULTS_BUCKET", "loadtest-results")
 os.environ.setdefault("JOB_QUEUE_URL", "placeholder")  # overwritten per fixture
 
@@ -29,7 +29,7 @@ def aws_resources():
         # DynamoDB
         ddb = boto3.resource("dynamodb", region_name="us-east-1")
         table = ddb.create_table(
-            TableName="load-tests",
+            TableName="queue-jobs",
             KeySchema=[
                 {"AttributeName": "testId", "KeyType": "HASH"},
                 {"AttributeName": "createdAt", "KeyType": "RANGE"},

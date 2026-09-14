@@ -57,7 +57,7 @@ export class InfraStack extends cdk.Stack {
 
     // ── DynamoDB ─────────────────────────────────────────────────────────────
     this.table = new dynamodb.Table(this, 'LoadTestsTable', {
-      tableName: 'load-tests',
+      tableName: 'queue-jobs',
       partitionKey: { name: 'jobId', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'createdAt', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
