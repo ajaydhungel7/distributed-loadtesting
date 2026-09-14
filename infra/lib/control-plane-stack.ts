@@ -20,7 +20,7 @@ export class ControlPlaneStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ControlPlaneStackProps) {
     super(scope, id, props);
 
-    const { vpc, controlPlaneRepo, table, jobQueue } = props.infra;
+    const { vpc, controlPlaneRepo } = props.infra;
 
     // ── ECS Cluster ───────────────────────────────────────────────────────────
     this.cluster = new ecs.Cluster(this, 'LoadTestCluster', {

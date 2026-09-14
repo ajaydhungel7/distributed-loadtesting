@@ -77,7 +77,7 @@ export class AutoscalingStack extends cdk.Stack {
       adjustmentType: appscaling.AdjustmentType.EXACT_CAPACITY,
       metricAggregationType: appscaling.MetricAggregationType.MAXIMUM,
     });
-    scaleInAction.addAdjustment({ adjustment: 0, upperBound: 0 });
+    scaleInAction.addAdjustment({ adjustment: 0, lowerBound: 0 });
 
     const scaleInAlarm = new cloudwatch.Alarm(this, 'QueueEmptyAlarm', {
       metric: queueDepthMetric,
