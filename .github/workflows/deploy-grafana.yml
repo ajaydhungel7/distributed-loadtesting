@@ -1,0 +1,56 @@
+name: Deploy Grafana
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'grafana/**'
+      - 'infra/lib/grafana-stack.ts'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy:
+    name: Build, Push & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsDeployRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          docker build -t $ECR_REGISTRY/loadtest/grafana:${{ github.sha }} \
+                       -t $ECR_REGISTRY/loadtest/grafana:latest .
+          docker push $ECR_REGISTRY/loadtest/grafana:${{ github.sha }}
+          docker push $ECR_REGISTRY/loadtest/grafana:latest
+        working-directory: grafana
+
+      - name: Install CDK dependencies
+        run: npm ci
+        working-directory: infra
+
+      - name: Deploy GrafanaStack
+        run: npx cdk deploy GrafanaStack --context imageTag=${{ github.sha }} --require-approval never
+        working-directory: infra
