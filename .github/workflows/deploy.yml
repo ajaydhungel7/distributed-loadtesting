@@ -49,6 +49,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - uses: actions/setup-node@v4
         with:
@@ -66,11 +68,28 @@ jobs:
         run: npm ci
         working-directory: infra
 
+      - name: Detect changed paths
+        id: changes
+        run: |
+          # Force rebuild all images if the stack doesn't exist yet (fresh deploy)
+          stack_exists=$(aws cloudformation describe-stacks --stack-name LoadTestStack --region $AWS_REGION --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "NONE")
+          if [ "$stack_exists" = "NONE" ]; then
+            echo "control-plane=true" >> $GITHUB_OUTPUT
+            echo "worker=true"        >> $GITHUB_OUTPUT
+            echo "grafana=true"       >> $GITHUB_OUTPUT
+          else
+            changed=$(git diff --name-only HEAD~1 HEAD)
+            echo "control-plane=$(echo "$changed" | grep -q '^control-plane/' && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "worker=$(echo "$changed"        | grep -q '^worker/'        && echo true || echo false)" >> $GITHUB_OUTPUT
+            echo "grafana=$(echo "$changed"       | grep -q '^grafana/'       && echo true || echo false)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Login to Amazon ECR
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push control-plane image
+        if: steps.changes.outputs.control-plane == 'true'
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
         run: |
@@ -81,6 +100,7 @@ jobs:
         working-directory: control-plane
 
       - name: Build and push worker image
+        if: steps.changes.outputs.worker == 'true'
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
         run: |
@@ -91,6 +111,7 @@ jobs:
         working-directory: worker
 
       - name: Build and push grafana image
+        if: steps.changes.outputs.grafana == 'true'
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
         run: |
@@ -101,5 +122,14 @@ jobs:
         working-directory: grafana
 
       - name: Deploy
-        run: npx cdk deploy LoadTestStack --context imageTag=${{ github.sha }} --require-approval never
+        env:
+          CP_TAG:     ${{ steps.changes.outputs.control-plane == 'true' && github.sha || 'latest' }}
+          WORKER_TAG: ${{ steps.changes.outputs.worker        == 'true' && github.sha || 'latest' }}
+          GRAFANA_TAG: ${{ steps.changes.outputs.grafana      == 'true' && github.sha || 'latest' }}
+        run: |
+          npx cdk deploy LoadTestStack \
+            --context controlPlaneTag=$CP_TAG \
+            --context workerTag=$WORKER_TAG \
+            --context grafanaTag=$GRAFANA_TAG \
+            --require-approval never
         working-directory: infra
