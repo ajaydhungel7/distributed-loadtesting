@@ -18,7 +18,9 @@ export class LoadTestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const imageTag = this.node.tryGetContext('imageTag') ?? 'latest';
+    const controlPlaneTag = this.node.tryGetContext('controlPlaneTag') ?? 'latest';
+    const workerTag       = this.node.tryGetContext('workerTag')       ?? 'latest';
+    const grafanaTag      = this.node.tryGetContext('grafanaTag')      ?? 'latest';
 
     // ── VPC ───────────────────────────────────────────────────────────────────
     const vpc = new ec2.Vpc(this, 'Vpc', {
@@ -106,7 +108,6 @@ export class LoadTestStack extends cdk.Stack {
     const ecsTaskPrincipal = new iam.ServicePrincipal('ecs-tasks.amazonaws.com');
 
     const controlPlaneTaskRole = new iam.Role(this, 'ControlPlaneTaskRole', {
-      roleName: 'ControlPlaneTaskRole',
       assumedBy: ecsTaskPrincipal,
     });
     controlPlaneTaskRole.addToPolicy(new iam.PolicyStatement({
@@ -119,7 +120,6 @@ export class LoadTestStack extends cdk.Stack {
     }));
 
     const workerTaskRole = new iam.Role(this, 'WorkerTaskRole', {
-      roleName: 'WorkerTaskRole',
       assumedBy: ecsTaskPrincipal,
     });
     workerTaskRole.addToPolicy(new iam.PolicyStatement({
@@ -145,7 +145,6 @@ export class LoadTestStack extends cdk.Stack {
       `arn:aws:iam::${this.account}:oidc-provider/token.actions.githubusercontent.com`,
     );
     const githubActionsRole = new iam.Role(this, 'GitHubActionsDeployRole', {
-      roleName: 'GitHubActionsDeployRole',
       assumedBy: new iam.WebIdentityPrincipal(githubOidcProvider.openIdConnectProviderArn, {
         StringEquals: { 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com' },
         StringLike:   { 'token.actions.githubusercontent.com:sub': 'repo:ajaydhungel7*distributed-loadtesting*' },
@@ -167,7 +166,6 @@ export class LoadTestStack extends cdk.Stack {
     // ── ECS Cluster ───────────────────────────────────────────────────────────
     const cluster = new ecs.Cluster(this, 'Cluster', {
       vpc,
-      clusterName: 'loadtest',
       containerInsights: true,
     });
 
@@ -190,7 +188,7 @@ export class LoadTestStack extends cdk.Stack {
       executionRole: cpExecutionRole,
     });
     cpTaskDef.addContainer('control-plane', {
-      image: ecs.ContainerImage.fromEcrRepository(controlPlaneRepo, imageTag),
+      image: ecs.ContainerImage.fromEcrRepository(controlPlaneRepo, controlPlaneTag),
       essential: true,
       portMappings: [{ containerPort: 8000, protocol: ecs.Protocol.TCP }],
       environment: {
@@ -262,7 +260,7 @@ export class LoadTestStack extends cdk.Stack {
       executionRole: workerExecutionRole,
     });
     workerTaskDef.addContainer('worker', {
-      image: ecs.ContainerImage.fromEcrRepository(workerRepo, imageTag),
+      image: ecs.ContainerImage.fromEcrRepository(workerRepo, workerTag),
       essential: true,
       environment: {
         TABLE_NAME:       'queue-jobs',
@@ -374,7 +372,7 @@ export class LoadTestStack extends cdk.Stack {
       executionRole: grafanaExecutionRole,
     });
     grafanaTaskDef.addContainer('grafana', {
-      image: ecs.ContainerImage.fromEcrRepository(grafanaRepo, imageTag),
+      image: ecs.ContainerImage.fromEcrRepository(grafanaRepo, grafanaTag),
       essential: true,
       portMappings: [{ containerPort: 3000, protocol: ecs.Protocol.TCP }],
       environment: { GF_AUTH_ANONYMOUS_ENABLED: 'false', GF_INSTALL_PLUGINS: '', AWS_REGION: this.region },

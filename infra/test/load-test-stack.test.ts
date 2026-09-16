@@ -79,15 +79,6 @@ test('S3 results bucket is private and versioned', () => {
 
 test('ControlPlaneTaskRole and WorkerTaskRole are created', () => {
   template.hasResourceProperties('AWS::IAM::Role', {
-    RoleName: 'ControlPlaneTaskRole',
-    AssumeRolePolicyDocument: Match.objectLike({
-      Statement: Match.arrayWith([
-        Match.objectLike({ Principal: { Service: 'ecs-tasks.amazonaws.com' }, Action: 'sts:AssumeRole' }),
-      ]),
-    }),
-  });
-  template.hasResourceProperties('AWS::IAM::Role', {
-    RoleName: 'WorkerTaskRole',
     AssumeRolePolicyDocument: Match.objectLike({
       Statement: Match.arrayWith([
         Match.objectLike({ Principal: { Service: 'ecs-tasks.amazonaws.com' }, Action: 'sts:AssumeRole' }),
@@ -98,7 +89,6 @@ test('ControlPlaneTaskRole and WorkerTaskRole are created', () => {
 
 test('GitHubActionsDeployRole uses OIDC trust policy for the repo', () => {
   template.hasResourceProperties('AWS::IAM::Role', {
-    RoleName: 'GitHubActionsDeployRole',
     AssumeRolePolicyDocument: Match.objectLike({
       Statement: Match.arrayWith([
         Match.objectLike({
@@ -116,7 +106,7 @@ test('GitHubActionsDeployRole uses OIDC trust policy for the repo', () => {
 // ── ECS Cluster ───────────────────────────────────────────────────────────────
 
 test('ECS cluster is created', () => {
-  template.hasResourceProperties('AWS::ECS::Cluster', { ClusterName: 'loadtest' });
+  template.resourceCountIs('AWS::ECS::Cluster', 1);
 });
 
 // ── Control Plane ─────────────────────────────────────────────────────────────
