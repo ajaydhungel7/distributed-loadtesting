@@ -68,12 +68,20 @@ jobs:
         run: npm ci
         working-directory: infra
 
+      # Step 1 — bootstrap infrastructure (VPC, ECR repos, DynamoDB, SQS, IAM).
+      # Uses 'latest' tag — ECS services won't start yet since images don't exist,
+      # but ECR repos get created so we can push to them next.
+      - name: Bootstrap infrastructure
+        run: npx cdk deploy LoadTestStack --require-approval never
+        working-directory: infra
+
       - name: Detect changed paths
         id: changes
         run: |
-          # Force rebuild all images if the stack doesn't exist yet (fresh deploy)
-          stack_exists=$(aws cloudformation describe-stacks --stack-name LoadTestStack --region $AWS_REGION --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "NONE")
-          if [ "$stack_exists" = "NONE" ]; then
+          # Force rebuild all images if this is the first real deploy (no images yet)
+          has_image=$(aws ecr describe-images --repository-name loadtest/control-plane \
+            --region $AWS_REGION --query 'length(imageDetails)' --output text 2>/dev/null || echo "0")
+          if [ "$has_image" = "0" ]; then
             echo "control-plane=true" >> $GITHUB_OUTPUT
             echo "worker=true"        >> $GITHUB_OUTPUT
             echo "grafana=true"       >> $GITHUB_OUTPUT
@@ -121,11 +129,12 @@ jobs:
           docker push $ECR_REGISTRY/loadtest/grafana:latest
         working-directory: grafana
 
-      - name: Deploy
+      # Step 2 — redeploy with real image tags so ECS picks up the new images
+      - name: Deploy with image tags
         env:
-          CP_TAG:     ${{ steps.changes.outputs.control-plane == 'true' && github.sha || 'latest' }}
-          WORKER_TAG: ${{ steps.changes.outputs.worker        == 'true' && github.sha || 'latest' }}
-          GRAFANA_TAG: ${{ steps.changes.outputs.grafana      == 'true' && github.sha || 'latest' }}
+          CP_TAG:      ${{ steps.changes.outputs.control-plane == 'true' && github.sha || 'latest' }}
+          WORKER_TAG:  ${{ steps.changes.outputs.worker        == 'true' && github.sha || 'latest' }}
+          GRAFANA_TAG: ${{ steps.changes.outputs.grafana       == 'true' && github.sha || 'latest' }}
         run: |
           npx cdk deploy LoadTestStack \
             --context controlPlaneTag=$CP_TAG \
