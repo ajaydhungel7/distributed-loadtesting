@@ -397,6 +397,8 @@ export class LoadTestStack extends cdk.Stack {
       actions: [
         'cloudwatch:GetMetricData', 'cloudwatch:ListMetrics', 'cloudwatch:GetMetricStatistics',
         'logs:StartQuery', 'logs:StopQuery', 'logs:GetQueryResults', 'logs:DescribeLogGroups',
+        'ec2:DescribeRegions',   // Grafana region picker
+        'oam:ListSinks',         // Grafana cross-account monitoring check
       ],
       resources: ['*'],
     }));

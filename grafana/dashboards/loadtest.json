@@ -1,306 +1,813 @@
 {
   "__inputs": [],
-  "__requires": [{ "type": "datasource", "id": "cloudwatch", "name": "CloudWatch", "version": "1.0.0" }],
-  "annotations": { "list": [] },
-  "description": "Distributed Queue Autoscaling Platform — system-level metrics",
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "cloudwatch",
+      "name": "CloudWatch",
+      "version": "1.0.0"
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "description": "Distributed Queue Autoscaling Platform \u2014 system-level metrics",
   "editable": true,
   "graphTooltip": 1,
   "id": null,
   "links": [],
   "refresh": "15s",
   "schemaVersion": 38,
-  "tags": ["queue", "autoscaling", "distributed"],
-  "time": { "from": "now-1h", "to": "now" },
+  "tags": [
+    "queue",
+    "autoscaling",
+    "distributed"
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Distributed Queue Autoscaling Platform",
   "uid": "queue-autoscaling",
   "version": 1,
-
   "panels": [
-
     {
-      "type": "row", "id": 100,
+      "type": "row",
+      "id": 100,
       "title": "At a Glance",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
     },
     {
-      "id": 10, "type": "stat", "title": "Queue Depth",
+      "id": 10,
+      "type": "stat",
+      "title": "Queue Depth",
       "description": "Messages waiting in the target queue right now.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [
-            { "value": null, "color": "green" },
-            { "value": 500, "color": "yellow" },
-            { "value": 5000, "color": "red" }
-          ]}
-        }, "overrides": []
-      },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto", "textMode": "auto" },
-      "targets": [{
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "AWS/SQS", "metricName": "ApproximateNumberOfMessagesVisible",
-        "dimensions": { "QueueName": "loadtest-target" },
-        "statistic": "Maximum", "period": "60",
-        "matchExact": true, "region": "default", "refId": "A"
-      }]
-    },
-    {
-      "id": 11, "type": "stat", "title": "Running Workers",
-      "description": "ECS Fargate worker tasks currently running.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short", "decimals": 0,
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [
-            { "value": null, "color": "blue" }
-          ]}
-        }, "overrides": []
-      },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto", "textMode": "auto" },
-      "targets": [{
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "ECS/ContainerInsights", "metricName": "RunningTaskCount",
-        "dimensions": {
-          "ClusterName": "LoadTestStack-ClusterEB0386A7-r3cahAglJNmG",
-          "ServiceName": "LoadTestStack-WorkerService99815FA9-d9Q3bkIGX9Dy"
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 500,
+                "color": "yellow"
+              },
+              {
+                "value": 5000,
+                "color": "red"
+              }
+            ]
+          }
         },
-        "statistic": "Average", "period": "60",
-        "matchExact": true, "region": "default", "refId": "A"
-      }]
-    },
-    {
-      "id": 12, "type": "stat", "title": "DLQ Depth",
-      "description": "Failed messages in the dead-letter queue. Should be zero.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [
-            { "value": null, "color": "green" },
-            { "value": 1, "color": "red" }
-          ]}
-        }, "overrides": []
+        "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "orientation": "auto", "textMode": "auto" },
-      "targets": [{
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "AWS/SQS", "metricName": "ApproximateNumberOfMessagesVisible",
-        "dimensions": { "QueueName": "loadtest-jobs-dlq" },
-        "statistic": "Maximum", "period": "60",
-        "matchExact": true, "region": "default", "refId": "A"
-      }]
-    },
-    {
-      "id": 13, "type": "stat", "title": "Consumer Lag",
-      "description": "Age of the oldest unprocessed message.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [
-            { "value": null, "color": "green" },
-            { "value": 30, "color": "yellow" },
-            { "value": 120, "color": "red" }
-          ]}
-        }, "overrides": []
-      },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto", "textMode": "auto" },
-      "targets": [{
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "AWS/SQS", "metricName": "ApproximateAgeOfOldestMessage",
-        "dimensions": { "QueueName": "loadtest-target" },
-        "statistic": "Maximum", "period": "60",
-        "matchExact": true, "region": "default", "refId": "A"
-      }]
-    },
-
-    {
-      "type": "row", "id": 101,
-      "title": "Queue",
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
-    },
-    {
-      "id": 1, "type": "timeseries",
-      "title": "Target Queue Depth",
-      "description": "Messages waiting to be processed. Drives worker autoscaling.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" }, "unit": "short",
-          "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": true }
-        }, "overrides": []
-      },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
-      "targets": [{
-        "alias": "Visible",
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "AWS/SQS", "metricName": "ApproximateNumberOfMessagesVisible",
-        "dimensions": { "QueueName": "loadtest-target" },
-        "statistic": "Maximum", "period": "60",
-        "matchExact": true, "region": "default", "refId": "A"
-      },
-      {
-        "alias": "In-Flight",
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "AWS/SQS", "metricName": "ApproximateNumberOfMessagesNotVisible",
-        "dimensions": { "QueueName": "loadtest-target" },
-        "statistic": "Maximum", "period": "60",
-        "matchExact": true, "region": "default", "refId": "B"
-      }]
-    },
-    {
-      "id": 2, "type": "timeseries",
-      "title": "Consumer Lag (Oldest Message Age)",
-      "description": "Age of the oldest unprocessed message. Near-zero means workers are keeping up.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "fixedColor": "red", "mode": "fixed" }, "unit": "s",
-          "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": true }
-        }, "overrides": []
-      },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
-      "targets": [{
-        "alias": "Lag (s)",
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "AWS/SQS", "metricName": "ApproximateAgeOfOldestMessage",
-        "dimensions": { "QueueName": "loadtest-target" },
-        "statistic": "Maximum", "period": "60",
-        "matchExact": true, "region": "default", "refId": "A"
-      }]
-    },
-
-    {
-      "type": "row", "id": 102,
-      "title": "Workers",
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }
-    },
-    {
-      "id": 3, "type": "timeseries",
-      "title": "Running Workers",
-      "description": "ECS Fargate tasks currently running. Should scale proportionally to queue depth.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "fixedColor": "orange", "mode": "fixed" }, "unit": "short", "decimals": 0,
-          "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": true }
-        }, "overrides": []
-      },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
-      "targets": [{
-        "alias": "Workers",
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "ECS/ContainerInsights", "metricName": "RunningTaskCount",
-        "dimensions": {
-          "ClusterName": "LoadTestStack-ClusterEB0386A7-r3cahAglJNmG",
-          "ServiceName": "LoadTestStack-WorkerService99815FA9-d9Q3bkIGX9Dy"
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
         },
-        "statistic": "Average", "period": "60",
-        "matchExact": true, "region": "default", "refId": "A"
-      }]
-    },
-    {
-      "id": 4, "type": "timeseries",
-      "title": "Messages Processed vs Published",
-      "description": "When the delete rate matches the send rate, workers are keeping up with the load.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" }, "unit": "short",
-          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true }
-        }, "overrides": []
+        "colorMode": "background",
+        "graphMode": "area",
+        "orientation": "auto",
+        "textMode": "auto"
       },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "alias": "Published",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "namespace": "AWS/SQS", "metricName": "NumberOfMessagesSent",
-          "dimensions": { "QueueName": "loadtest-target" },
-          "statistic": "Sum", "period": "60",
-          "matchExact": true, "region": "default", "refId": "A"
-        },
-        {
-          "alias": "Processed",
-          "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-          "namespace": "AWS/SQS", "metricName": "NumberOfMessagesDeleted",
-          "dimensions": { "QueueName": "loadtest-target" },
-          "statistic": "Sum", "period": "60",
-          "matchExact": true, "region": "default", "refId": "B"
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "dimensions": {
+            "QueueName": "loadtest-target"
+          },
+          "statistic": "Maximum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": "",
+          "alias": ""
         }
       ]
     },
-
     {
-      "type": "row", "id": 103,
+      "id": 11,
+      "type": "stat",
+      "title": "Running Workers",
+      "description": "ECS Fargate worker tasks currently running.",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "blue"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "RunningTaskCount",
+          "dimensions": {
+            "ClusterName": "LoadTestStack-ClusterEB0386A7-r3cahAglJNmG",
+            "ServiceName": "LoadTestStack-WorkerService99815FA9-d9Q3bkIGX9Dy"
+          },
+          "statistic": "Average",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": "",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "DLQ Depth",
+      "description": "Failed messages in the dead-letter queue. Should be zero.",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "dimensions": {
+            "QueueName": "loadtest-jobs-dlq"
+          },
+          "statistic": "Maximum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": "",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Consumer Lag",
+      "description": "Age of the oldest unprocessed message.",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 30,
+                "color": "yellow"
+              },
+              {
+                "value": 120,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateAgeOfOldestMessage",
+          "dimensions": {
+            "QueueName": "loadtest-target"
+          },
+          "statistic": "Maximum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": "",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 101,
+      "title": "Queue",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      }
+    },
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Target Queue Depth",
+      "description": "Messages waiting to be processed. Drives worker autoscaling.",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "alias": "Visible",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "dimensions": {
+            "QueueName": "loadtest-target"
+          },
+          "statistic": "Maximum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": ""
+        },
+        {
+          "alias": "In-Flight",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesNotVisible",
+          "dimensions": {
+            "QueueName": "loadtest-target"
+          },
+          "statistic": "Maximum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "B",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": ""
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Consumer Lag (Oldest Message Age)",
+      "description": "Age of the oldest unprocessed message. Near-zero means workers are keeping up.",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          },
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "alias": "Lag (s)",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateAgeOfOldestMessage",
+          "dimensions": {
+            "QueueName": "loadtest-target"
+          },
+          "statistic": "Maximum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": ""
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 102,
+      "title": "Workers",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Running Workers",
+      "description": "ECS Fargate tasks currently running. Should scale proportionally to queue depth.",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "orange",
+            "mode": "fixed"
+          },
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "alias": "Workers",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "RunningTaskCount",
+          "dimensions": {
+            "ClusterName": "LoadTestStack-ClusterEB0386A7-r3cahAglJNmG",
+            "ServiceName": "LoadTestStack-WorkerService99815FA9-d9Q3bkIGX9Dy"
+          },
+          "statistic": "Average",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": ""
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Messages Processed vs Published",
+      "description": "When the delete rate matches the send rate, workers are keeping up with the load.",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "alias": "Published",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "NumberOfMessagesSent",
+          "dimensions": {
+            "QueueName": "loadtest-target"
+          },
+          "statistic": "Sum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": ""
+        },
+        {
+          "alias": "Processed",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "NumberOfMessagesDeleted",
+          "dimensions": {
+            "QueueName": "loadtest-target"
+          },
+          "statistic": "Sum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "B",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": ""
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 103,
       "title": "Health",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      }
     },
     {
-      "id": 5, "type": "timeseries",
+      "id": 5,
+      "type": "timeseries",
       "title": "DLQ Depth",
       "description": "Messages that failed all retries. Non-zero means workers are throwing errors.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "red", "mode": "fixed" }, "unit": "short",
-          "custom": { "lineWidth": 2, "fillOpacity": 20, "spanNulls": true }
-        }, "overrides": []
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          },
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
       },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
-      "targets": [{
-        "alias": "DLQ",
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "AWS/SQS", "metricName": "ApproximateNumberOfMessagesVisible",
-        "dimensions": { "QueueName": "loadtest-jobs-dlq" },
-        "statistic": "Maximum", "period": "60",
-        "matchExact": true, "region": "default", "refId": "A"
-      }]
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "alias": "DLQ",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "dimensions": {
+            "QueueName": "loadtest-jobs-dlq"
+          },
+          "statistic": "Maximum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": ""
+        }
+      ]
     },
     {
-      "id": 6, "type": "timeseries",
+      "id": 6,
+      "type": "timeseries",
       "title": "Jobs Queue Depth",
       "description": "Messages in the jobs queue (control plane output). Should drain quickly.",
-      "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" }, "unit": "short",
-          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true }
-        }, "overrides": []
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
       },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
-      "targets": [{
-        "alias": "Jobs Queue",
-        "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
-        "namespace": "AWS/SQS", "metricName": "ApproximateNumberOfMessagesVisible",
-        "dimensions": { "QueueName": "loadtest-jobs" },
-        "statistic": "Maximum", "period": "60",
-        "matchExact": true, "region": "default", "refId": "A"
-      }]
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "alias": "Jobs Queue",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "dimensions": {
+            "QueueName": "loadtest-jobs"
+          },
+          "statistic": "Maximum",
+          "period": "60",
+          "matchExact": true,
+          "region": "us-east-1",
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "expression": "",
+          "sqlExpression": ""
+        }
+      ]
     }
-
   ],
-
-  "templating": { "list": [] }
+  "templating": {
+    "list": []
+  }
 }
