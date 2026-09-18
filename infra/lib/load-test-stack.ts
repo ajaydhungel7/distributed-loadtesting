@@ -162,6 +162,13 @@ export class LoadTestStack extends cdk.Stack {
       actions: ['sts:AssumeRole'],
       resources: [`arn:aws:iam::${this.account}:role/cdk-*`],
     }));
+    githubActionsRole.addToPolicy(new iam.PolicyStatement({
+      actions: [
+        'ecs:ListClusters', 'ecs:DescribeClusters',
+        'ecs:ListServices', 'ecs:UpdateService',
+      ],
+      resources: ['*'],
+    }));
 
     // ── ECS Cluster ───────────────────────────────────────────────────────────
     const cluster = new ecs.Cluster(this, 'Cluster', {
