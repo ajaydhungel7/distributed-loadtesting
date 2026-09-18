@@ -1,261 +1,233 @@
-# Distributed Load Testing Platform
+# Queue-Based Autoscaling
 
-A distributed load testing platform on AWS. Submit a test via the control plane API, k6 workers spin up automatically on ECS Fargate, run the test, and publish metrics to Grafana via CloudWatch.
+A distributed job processing platform on AWS that demonstrates queue-driven autoscaling. Submit a job via the control plane API — workers automatically scale up on ECS Fargate based on SQS queue depth, process all messages, then scale back to zero.
 
 ## Architecture
 
 ```
 User → Control Plane API (ALB → ECS Fargate)
            │
-           ├── DynamoDB  (job metadata + results)
-           └── SQS       (job queue)
+           └── SQS: loadtest-target (job messages)
                 │
-                ├── CloudWatch Alarm (queue depth)
+                ├── CloudWatch: ApproximateNumberOfMessagesVisible
                 │       │
-                │       └── App Auto Scaling → Worker ECS Service (0 → 50 tasks)
+                │       └── Application Auto Scaling (target tracking)
+                │               backlog per task = messages / running workers
+                │               target: 500 msgs/worker → scales 0 to 100
                 │
-                └── Worker Tasks (k6)
+                └── Worker Tasks (ECS Fargate, 0 at idle)
                         │
-                        ├── DynamoDB  (update status + write results)
-                        ├── S3        (raw k6 JSON summary)
-                        └── CloudWatch EMF (p50/p95/p99/throughput/errorRate)
-                                │
-                                └── Grafana (CloudWatch datasource)
+                        ├── SQS long-poll (20s) → process → delete
+                        ├── DynamoDB atomic counter (processedCount)
+                        ├── ECS task scale-in protection (mid-message safety)
+                        └── Exit after 3 consecutive empty polls (~60s idle)
+
+DynamoDB: job metadata + progress tracking
+S3:       results storage
+Grafana:  CloudWatch datasource — queue depth, workers, throughput, lag
 ```
 
 **Flow:**
-1. `POST /tests` → stored in DynamoDB as `PENDING`, job sent to SQS
-2. CloudWatch alarm fires when queue depth ≥ 1 → autoscaler sets worker desired count to 5–50
-3. Worker picks up the job, runs k6, writes results back to DynamoDB + S3 + CloudWatch
-4. Test transitions `PENDING → RUNNING → COMPLETED`
+1. `POST /jobs` → stores job in DynamoDB, floods `loadtest-target` queue with N messages
+2. CloudWatch alarm fires when queue depth ≥ 1 → bootstrap worker starts
+3. Target tracking policy scales workers to `ceil(messages / 500)`
+4. Each worker loops: poll → protect → process → unprotect → repeat
+5. Workers exit after 3 empty polls; scale-in cooldown (5 min) brings desired to 0
+6. Last worker to finish atomically marks job `COMPLETED`
 
 ## Repository Structure
 
 ```
 .
-├── infra/                  # AWS CDK (TypeScript) — all infrastructure
-│   ├── bin/infra.ts        # App entry point — wires all stacks
-│   ├── lib/
-│   │   ├── infra-stack.ts          # Foundation: VPC, ECR, DynamoDB, SQS, S3, IAM
-│   │   ├── control-plane-stack.ts  # FastAPI service: ECS Fargate + ALB
-│   │   ├── worker-stack.ts         # k6 worker: ECS Fargate service (idle at 0)
-│   │   ├── autoscaling-stack.ts    # Step scaling triggered by SQS queue depth
-│   │   └── grafana-stack.ts        # Grafana on ECS Fargate + ALB
-│   └── test/               # CDK assertion tests (Jest)
+├── infra/                        # AWS CDK (TypeScript) — single stack
+│   ├── bin/infra.ts              # App entry point
+│   ├── lib/load-test-stack.ts    # All resources in one stack (no cross-stack deps)
+│   └── test/load-test-stack.test.ts
 │
-├── control-plane/          # FastAPI app (Python)
+├── control-plane/                # FastAPI (Python)
 │   ├── app/
-│   │   ├── main.py         # FastAPI app entry point
-│   │   ├── routes/tests.py # REST endpoints
-│   │   ├── models/         # Pydantic models + validation
-│   │   └── services/       # DynamoDB + SQS clients
+│   │   ├── main.py
+│   │   ├── routes/tests.py       # POST /jobs, GET /jobs/:id
+│   │   ├── models/test_job.py    # CreateJobRequest, JobRecord
+│   │   └── services/             # DynamoDB + SQS clients
 │   ├── Dockerfile
-│   └── tests/              # pytest + moto
+│   └── tests/
 │
-├── worker/                 # k6 worker (Python + k6 binary)
-│   ├── main.py             # SQS polling loop + job lifecycle
-│   ├── k6_runner.py        # k6 script generation + output parsing
-│   ├── metrics_emitter.py  # CloudWatch EMF log emission
-│   ├── Dockerfile          # Copies k6 from grafana/k6, runs as non-root
-│   └── tests/              # pytest + moto
+├── worker/                       # Python worker
+│   ├── main.py                   # SQS polling loop + job lifecycle
+│   ├── metrics_emitter.py        # CloudWatch EMF
+│   ├── Dockerfile
+│   └── tests/
 │
-├── grafana/                # Custom Grafana image
+├── grafana/                      # Custom Grafana image
 │   ├── Dockerfile
 │   ├── provisioning/
-│   │   ├── datasources/cloudwatch.yaml   # CloudWatch datasource (uses ECS task role)
-│   │   └── dashboards/dashboards.yaml    # File provider config
-│   └── dashboards/loadtest.json          # Pre-built dashboard
+│   │   ├── datasources/cloudwatch.yaml
+│   │   └── dashboards/dashboards.yaml
+│   └── dashboards/loadtest.json  # Pre-built system dashboard
 │
 └── .github/workflows/
-    ├── ci.yml      # PR checks: tests + docker build (no push)
-    └── deploy.yml  # main push: test → deploy InfraStack → push images → deploy app stacks
+    └── deploy.yml                # CI + deploy in one workflow
 ```
 
-## CDK Stacks
+## Infrastructure (Single CDK Stack)
 
-Each stack is a separate file in `infra/lib/`. They are deployed in dependency order.
-
-### `InfraStack` — Foundation
-Shared resources consumed by all other stacks.
+Everything lives in `LoadTestStack` — one stack eliminates cross-stack export deadlocks and simplifies deploys.
 
 | Resource | Details |
 |----------|---------|
 | VPC | 2 AZs, 1 NAT gateway, public + private subnets |
 | ECR | 3 repos: `loadtest/control-plane`, `loadtest/worker`, `loadtest/grafana` |
-| DynamoDB | `load-tests` table — `testId` (PK), `createdAt` (SK), GSI on `status` |
-| SQS | `loadtest-jobs` queue + DLQ (maxReceiveCount=3, SSE enabled) |
-| S3 | Results bucket — versioned, SSE, lifecycle to IA after 30 days |
-| IAM | `ControlPlaneTaskRole`, `WorkerTaskRole` (least privilege) |
-| OIDC | `GitHubActionsDeployRole` — OIDC trust, no long-lived keys |
+| DynamoDB | `queue-jobs` table — `jobId` (PK), `createdAt` (SK) |
+| SQS | `loadtest-target` queue + `loadtest-jobs-dlq` (maxReceiveCount=3) |
+| S3 | Results bucket — versioned, private |
+| ECS | Single cluster, 3 Fargate services (CP + worker + Grafana) |
+| Autoscaling | Target tracking: 500 msgs/worker, scale-out cooldown 60s, scale-in 300s |
+| Grafana | Admin password in Secrets Manager (`loadtest/grafana-admin-password`) |
+| OIDC | `GitHubActionsDeployRole` — no long-lived AWS keys |
 
-### `ControlPlaneStack` — API
-FastAPI service fronted by an Application Load Balancer.
+## API
 
-| Resource | Details |
-|----------|---------|
-| ECS Cluster | `loadtest` — shared with workers |
-| Fargate Service | 1 task, 512 CPU / 1024 MB, private subnets |
-| ALB | Internet-facing, port 80 |
-| Health check | `python3 -c "urllib.request.urlopen('http://localhost:8000/health')"` |
-| Logs | `/loadtest/control-plane` |
+Base URL: the `ControlPlaneUrl` output from `LoadTestStack`.
 
-### `WorkerStack` — k6 Workers
-ECS Fargate service that starts at 0 tasks and is driven by the autoscaler.
-
-| Resource | Details |
-|----------|---------|
-| Fargate Service | desiredCount: 0 at idle, private subnets |
-| Task | 512 CPU / 1024 MB, k6 binary + Python worker |
-| Logs | `/loadtest/workers` |
-
-### `AutoscalingStack` — Queue-Driven Scaling
-Step scaling on the worker service based on SQS `ApproximateNumberOfMessagesVisible`.
-
-| Queue depth | Worker count |
-|-------------|-------------|
-| 1–5 | 5 |
-| 6–10 | 10 |
-| 11–20 | 20 |
-| 21+ | 50 (max) |
-| 0 for 5 min | 0 (scale to zero) |
-
-### `GrafanaStack` — Dashboards
-Grafana running on ECS Fargate with a provisioned CloudWatch datasource and pre-built dashboard.
-
-| Resource | Details |
-|----------|---------|
-| Fargate Service | 1 task, 512 CPU / 1024 MB |
-| ALB | Internet-facing, port 80 → 3000 |
-| Auth | Admin password in Secrets Manager (`loadtest/grafana-admin-password`) |
-| Datasource | CloudWatch via ECS task role (no access keys) |
-
-## Control Plane API
-
-Base URL: ALB DNS from `ControlPlaneStack` outputs.
-
-### Create a test
+### Create a job
 ```bash
-POST /tests
+POST /jobs
 Content-Type: application/json
 
 {
-  "name": "my test",
-  "targetUrl": "https://example.com",
-  "virtualUsers": 50,
-  "duration": "30s",
-  "rampUp": "10s"
+  "name": "my-test",
+  "messageCount": 1000,
+  "processingTime": 500
 }
 ```
-
-Response `202`:
-```json
-{ "testId": "01M26M8P...", "status": "PENDING" }
-```
-
-### Get a test
-```bash
-GET /tests/{testId}
-```
+- `messageCount` — number of messages to flood into the queue (1–1,000,000)
+- `processingTime` — simulated processing time per message in ms (default 0)
 
 Response:
 ```json
+{ "jobId": "01M2TVK22DSS3PFYD1N43Z0PTB", "status": "RUNNING" }
+```
+
+### Get job status
+```bash
+GET /jobs/{jobId}
+```
+
+```json
 {
-  "testId": "01M26M8P...",
+  "jobId": "01M2TVK22DSS3PFYD1N43Z0PTB",
+  "name": "my-test",
   "status": "COMPLETED",
+  "messageCount": 1000,
+  "processedCount": 1000,
+  "processingTime": 500,
+  "createdAt": "2026-09-18T17:38:00Z",
+  "completedAt": "2026-09-18T17:43:12Z",
   "results": {
-    "p50": 3.0,
-    "p95": 128.6,
-    "p99": null,
-    "throughput": 7.9,
-    "errorRate": 0.0
-  },
-  "startedAt": "2026-09-10T21:45:05Z",
-  "completedAt": "2026-09-10T21:45:56Z"
+    "totalProcessed": 1000,
+    "avgProcessingMs": 500.0
+  }
 }
 ```
 
-### List tests
+**Statuses:** `RUNNING → COMPLETED | FAILED`
+
+### Health check
 ```bash
-GET /tests
-GET /tests?status=RUNNING
+GET /health
+→ { "status": "ok" }
 ```
 
-### Cancel a test
-```bash
-DELETE /tests/{testId}
+## Autoscaling Behaviour
+
+Workers scale using **target tracking on backlog-per-task**:
+
+```
+backlog per task = ApproximateNumberOfMessagesVisible / RunningTaskCount
+target           = 500
 ```
 
-**Test statuses:** `PENDING → RUNNING → COMPLETED | FAILED | CANCELLED`
+| Messages | Workers |
+|----------|---------|
+| 500 | 1 |
+| 1,000 | 2 |
+| 5,000 | 10 |
+| 50,000 | 100 (max) |
 
-**Metric fields:**
-- `p50` — median response time (ms)
-- `p95` — 95th percentile response time (ms)
-- `p99` — 99th percentile response time (ms)
-- `throughput` — requests per second
-- `errorRate` — fraction of failed requests (0.0–1.0)
+- **Scale-out cooldown:** 60s — reacts fast to new jobs
+- **Scale-in cooldown:** 300s — conservative, avoids thrashing
+- **Bootstrap alarm:** bumps desired 0→1 on first message so Container Insights starts publishing `RunningTaskCount`
+- **Task scale-in protection:** workers self-report safe-to-stop via ECS agent endpoint
+
+## Grafana Dashboard
+
+URL: the `GrafanaUrl` output from `LoadTestStack`.
+Login: `admin` / password from Secrets Manager (`loadtest/grafana-admin-password`).
+
+Panels:
+- **At a Glance** — queue depth, running workers, DLQ depth, consumer lag (stat tiles)
+- **Queue** — target queue depth + in-flight messages; oldest message age
+- **Workers** — running task count; published vs processed message rate
+- **Health** — DLQ depth over time; jobs queue depth
 
 ## CI/CD Pipeline
 
-Two workflows, both in `.github/workflows/`.
+Single workflow: `.github/workflows/deploy.yml`
 
-### `ci.yml` — Pull Request checks
-Runs on every PR to `main`. Four jobs in parallel:
+**On pull request:** runs tests only (CDK Jest + Python pytest for all services).
 
-- **CDK Tests** — Jest assertion tests against synthesized CloudFormation templates
-- **Control Plane Tests** — pytest + moto (mocked AWS)
-- **Worker Tests** — pytest + moto
-- **Docker Build** — builds all 3 images, no push
+**On push to main:**
+1. Tests
+2. AWS OIDC auth (4h session — no stored keys)
+3. **Bootstrap** — if ECR repos don't exist yet, deploy CDK first to create them
+4. **Detect changes** — git diff to find which of `control-plane/`, `worker/`, `grafana/` changed; if ECR is empty, rebuild all
+5. **Build & push** images for changed services (tagged with commit SHA + `latest`)
+6. **CDK deploy** `LoadTestStack` with per-service image tags via context
+7. **Scale up** — set control-plane and Grafana to `desiredCount=1` (worker stays at 0, managed by autoscaling)
 
-### `deploy.yml` — Deploy on merge to main
-Runs on push to `main`. Two sequential jobs:
-
-**Tests** (same as CI)
-
-**Deploy to AWS:**
-1. Authenticate via OIDC (`GitHubActionsDeployRole`) — no access keys stored
-2. `cdk deploy InfraStack` — creates ECR repos and shared resources first
-3. Build and push `control-plane`, `worker`, `grafana` images to ECR (tagged with commit SHA + `latest`)
-4. `cdk deploy ControlPlaneStack WorkerStack AutoscalingStack GrafanaStack`
-
-Deploy order matters: InfraStack must exist before images are pushed (ECR repos), and images must exist in ECR before ECS services are deployed.
+CDK keeps all ECS services at `desiredCount=0` so CloudFormation always stabilizes successfully. The pipeline scales up after confirming images exist in ECR.
 
 ## Local Development
 
 ### Prerequisites
-- Node.js 22+, Python 3.12+
-- AWS CLI configured (`aws configure`)
+- Node.js 20+, Python 3.12+
+- AWS CLI configured
 - CDK CLI: `npm install -g aws-cdk`
 
-### CDK (Infrastructure)
+### Run tests locally
 ```bash
-cd infra
-npm install
-npm test           # run CDK assertion tests
-npx cdk diff       # preview changes
-npx cdk deploy InfraStack
+# CDK
+cd infra && npm ci && npm test
+
+# Control plane
+cd control-plane && pip install -r requirements-dev.txt && pytest tests/ -v
+
+# Worker
+cd worker && pip install -r requirements-dev.txt && pytest tests/ -v
 ```
 
-### Control Plane
+### Infrastructure diff
 ```bash
-cd control-plane
-pip install -r requirements-dev.txt
-pytest tests/ -v
+cd infra && npx cdk diff
 ```
 
-### Worker
-```bash
-cd worker
-pip install -r requirements-dev.txt
-pytest tests/ -v
-```
+## First-Time Setup
 
-## First-Time Bootstrap
-
-CDK requires a one-time bootstrap per AWS account/region:
-
+### 1. Bootstrap CDK
 ```bash
 cd infra
 npx cdk bootstrap aws://<ACCOUNT_ID>/us-east-1
 ```
 
-Then add your AWS account ID as a GitHub secret (`AWS_ACCOUNT_ID`) and push to `main`. The pipeline handles everything from there.
+### 2. GitHub secret
+Add `AWS_ACCOUNT_ID` to your repository secrets.
+
+### 3. Push to main
+The pipeline handles everything: creates ECR repos, builds images, deploys the full stack, scales up services.
+
+### 4. Get endpoints
+```bash
+aws cloudformation describe-stacks --stack-name LoadTestStack --region us-east-1 \
+  --query 'Stacks[0].Outputs[*].{Key:OutputKey,Value:OutputValue}' --output table
+```
