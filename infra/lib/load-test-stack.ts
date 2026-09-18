@@ -147,7 +147,7 @@ export class LoadTestStack extends cdk.Stack {
     const githubActionsRole = new iam.Role(this, 'GitHubActionsDeployRole', {
       assumedBy: new iam.WebIdentityPrincipal(githubOidcProvider.openIdConnectProviderArn, {
         StringEquals: { 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com' },
-        StringLike:   { 'token.actions.githubusercontent.com:sub': 'repo:ajaydhungel7*distributed-loadtesting*' },
+        StringLike:   { 'token.actions.githubusercontent.com:sub': 'repo:ajaydhungel7/queue-based-autoscaling:*' },
       }),
     });
     githubActionsRole.addToPolicy(new iam.PolicyStatement({
