@@ -169,27 +169,28 @@ test('Scalable target is registered for ECS worker service', () => {
     ServiceNamespace: 'ecs',
     ScalableDimension: 'ecs:service:DesiredCount',
     MinCapacity: 0,
-    MaxCapacity: 50,
+    MaxCapacity: 100,
   });
 });
 
-test('Scale-out alarm monitors target queue depth', () => {
+test('Target tracking policy uses backlog-per-task metric math', () => {
+  template.hasResourceProperties('AWS::ApplicationAutoScaling::ScalingPolicy', {
+    PolicyType: 'TargetTrackingScaling',
+    TargetTrackingScalingPolicyConfiguration: Match.objectLike({
+      TargetValue: 10,
+      ScaleOutCooldown: 60,
+      ScaleInCooldown: 300,
+    }),
+  });
+});
+
+test('Bootstrap alarm fires when messages appear in queue', () => {
   template.hasResourceProperties('AWS::CloudWatch::Alarm', {
     AlarmName: 'LoadTestWorkerQueueDepth',
     Namespace: 'AWS/SQS',
     MetricName: 'ApproximateNumberOfMessagesVisible',
     Dimensions: Match.arrayWith([Match.objectLike({ Name: 'QueueName' })]),
     Threshold: 1,
-  });
-});
-
-test('Scale-in alarm fires when queue is empty for 5 consecutive minutes', () => {
-  template.hasResourceProperties('AWS::CloudWatch::Alarm', {
-    Namespace: 'AWS/SQS',
-    MetricName: 'ApproximateNumberOfMessagesVisible',
-    Threshold: 0,
-    EvaluationPeriods: 5,
-    DatapointsToAlarm: 5,
   });
 });
 

@@ -290,58 +290,92 @@ export class LoadTestStack extends cdk.Stack {
     });
 
     // ── Autoscaling ───────────────────────────────────────────────────────────
+    // AWS best practice: target tracking on "backlog per task" = messages / running tasks.
+    // This scales workers proportionally to the actual workload rather than using fixed steps.
+    // Target of 10 means: 1 worker per 10 queued messages (100 msgs → 10 workers, 500 → 50).
+    // IF(m2>0, m1/m2, m1) avoids divide-by-zero when no tasks are running yet.
     const scalableTarget = new appscaling.ScalableTarget(this, 'WorkerScalableTarget', {
       serviceNamespace: appscaling.ServiceNamespace.ECS,
       scalableDimension: 'ecs:service:DesiredCount',
       resourceId: `service/${cluster.clusterName}/${workerService.serviceName}`,
       minCapacity: 0,
-      maxCapacity: 50,
+      maxCapacity: 100,
     });
 
-    const queueDepthMetric = new cloudwatch.Metric({
-      namespace: 'AWS/SQS',
-      metricName: 'ApproximateNumberOfMessagesVisible',
-      dimensionsMap: { QueueName: targetQueue.queueName },
-      statistic: 'Maximum',
-      period: cdk.Duration.minutes(1),
+    new appscaling.CfnScalingPolicy(this, 'WorkerBacklogTrackingPolicy', {
+      policyName: 'WorkerBacklogPerTaskTracking',
+      policyType: 'TargetTrackingScaling',
+      scalingTargetId: scalableTarget.scalableTargetId,
+      targetTrackingScalingPolicyConfiguration: {
+        targetValue: 10,        // target: 10 messages per running worker
+        scaleOutCooldown: 60,   // scale out quickly to absorb new jobs
+        scaleInCooldown: 300,   // scale in conservatively (5 min) to avoid thrashing
+        disableScaleIn: false,
+        customizedMetricSpecification: {
+          metrics: [
+            {
+              id: 'm1',
+              returnData: false,
+              metricStat: {
+                metric: {
+                  namespace: 'AWS/SQS',
+                  metricName: 'ApproximateNumberOfMessagesVisible',
+                  dimensions: [{ name: 'QueueName', value: targetQueue.queueName }],
+                },
+                stat: 'Sum',
+              },
+            },
+            {
+              id: 'm2',
+              returnData: false,
+              metricStat: {
+                metric: {
+                  namespace: 'ECS/ContainerInsights',
+                  metricName: 'RunningTaskCount',
+                  dimensions: [
+                    { name: 'ClusterName', value: cluster.clusterName },
+                    { name: 'ServiceName', value: workerService.serviceName },
+                  ],
+                },
+                stat: 'Average',
+              },
+            },
+            {
+              id: 'e1',
+              expression: 'IF(m2 > 0, m1 / m2, m1)',
+              returnData: true,
+            },
+          ],
+        },
+      },
     });
 
-    const scaleOutAction = new appscaling.StepScalingAction(this, 'ScaleOutAction', {
-      scalingTarget: scalableTarget,
-      adjustmentType: appscaling.AdjustmentType.EXACT_CAPACITY,
-      metricAggregationType: appscaling.MetricAggregationType.MAXIMUM,
-    });
-    scaleOutAction.addAdjustment({ adjustment: 5,  lowerBound: 0,  upperBound: 5  });
-    scaleOutAction.addAdjustment({ adjustment: 10, lowerBound: 5,  upperBound: 10 });
-    scaleOutAction.addAdjustment({ adjustment: 20, lowerBound: 10, upperBound: 20 });
-    scaleOutAction.addAdjustment({ adjustment: 50, lowerBound: 20 });
-
+    // Scale-out alarm: fires immediately when any messages appear.
+    // This bootstraps scaling before Container Insights has RunningTaskCount data.
     const scaleOutAlarm = new cloudwatch.Alarm(this, 'QueueDepthAlarm', {
       alarmName: 'LoadTestWorkerQueueDepth',
-      metric: queueDepthMetric,
+      metric: new cloudwatch.Metric({
+        namespace: 'AWS/SQS',
+        metricName: 'ApproximateNumberOfMessagesVisible',
+        dimensionsMap: { QueueName: targetQueue.queueName },
+        statistic: 'Sum',
+        period: cdk.Duration.minutes(1),
+      }),
       threshold: 1,
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
       evaluationPeriods: 1,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
-    scaleOutAlarm.addAlarmAction(new cloudwatch_actions.ApplicationScalingAction(scaleOutAction));
 
-    const scaleInAction = new appscaling.StepScalingAction(this, 'ScaleInAction', {
+    // When messages appear, bump desired from 0→1 so Container Insights starts publishing
+    // RunningTaskCount, which unblocks the target tracking metric math expression.
+    const bootstrapScaleOut = new appscaling.StepScalingAction(this, 'BootstrapScaleOut', {
       scalingTarget: scalableTarget,
       adjustmentType: appscaling.AdjustmentType.EXACT_CAPACITY,
       metricAggregationType: appscaling.MetricAggregationType.MAXIMUM,
     });
-    scaleInAction.addAdjustment({ adjustment: 0, lowerBound: 0 });
-
-    const scaleInAlarm = new cloudwatch.Alarm(this, 'QueueEmptyAlarm', {
-      metric: queueDepthMetric,
-      threshold: 0,
-      comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
-      evaluationPeriods: 5,
-      datapointsToAlarm: 5,
-      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    });
-    scaleInAlarm.addAlarmAction(new cloudwatch_actions.ApplicationScalingAction(scaleInAction));
+    bootstrapScaleOut.addAdjustment({ adjustment: 1, lowerBound: 0 });
+    scaleOutAlarm.addAlarmAction(new cloudwatch_actions.ApplicationScalingAction(bootstrapScaleOut));
 
     // ── Grafana ───────────────────────────────────────────────────────────────
     const grafanaPassword = new secretsmanager.Secret(this, 'GrafanaAdminPassword', {
