@@ -95,7 +95,7 @@ test('GitHubActionsDeployRole uses OIDC trust policy for the repo', () => {
           Action: 'sts:AssumeRoleWithWebIdentity',
           Condition: Match.objectLike({
             StringEquals: Match.objectLike({ 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com' }),
-            StringLike:   Match.objectLike({ 'token.actions.githubusercontent.com:sub': 'repo:ajaydhungel7*distributed-loadtesting*' }),
+            StringLike:   Match.objectLike({ 'token.actions.githubusercontent.com:sub': 'repo:ajaydhungel7/queue-based-autoscaling:*' }),
           }),
         }),
       ]),
