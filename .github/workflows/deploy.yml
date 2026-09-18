@@ -73,10 +73,25 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
+      # On a brand-new environment the ECR repos don't exist yet.
+      # Bootstrap the stack first so repos get created, then we can push images.
+      - name: Bootstrap infra (first run only)
+        run: |
+          repo_exists=$(aws ecr describe-repositories \
+            --repository-names loadtest/control-plane --region $AWS_REGION 2>/dev/null \
+            && echo "true" || echo "false")
+          if [ "$repo_exists" = "false" ]; then
+            echo "Fresh environment — bootstrapping infra to create ECR repos..."
+            npx cdk deploy LoadTestStack --require-approval never
+          else
+            echo "ECR repos exist — skipping bootstrap"
+          fi
+        working-directory: infra
+
       - name: Detect changed paths
         id: changes
         run: |
-          # Force rebuild all images if ECR repos are empty (fresh environment)
+          # Force rebuild all images if ECR repos have no images yet
           has_image=$(aws ecr describe-images --repository-name loadtest/control-plane \
             --region $AWS_REGION --query 'length(imageDetails)' --output text 2>/dev/null || echo "0")
           if [ "$has_image" = "0" ]; then
