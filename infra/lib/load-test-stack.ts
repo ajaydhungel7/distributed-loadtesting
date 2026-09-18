@@ -234,7 +234,7 @@ export class LoadTestStack extends cdk.Stack {
     });
 
     const cpService = new ecs.FargateService(this, 'ControlPlaneService', {
-      cluster, taskDefinition: cpTaskDef, desiredCount: 1,
+      cluster, taskDefinition: cpTaskDef, desiredCount: 0,
       securityGroups: [cpServiceSg],
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       assignPublicIp: false,
@@ -404,7 +404,7 @@ export class LoadTestStack extends cdk.Stack {
     });
 
     const grafanaService = new ecs.FargateService(this, 'GrafanaService', {
-      cluster, taskDefinition: grafanaTaskDef, desiredCount: 1,
+      cluster, taskDefinition: grafanaTaskDef, desiredCount: 0,
       securityGroups: [grafanaServiceSg],
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       assignPublicIp: false,

@@ -63,22 +63,20 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsDeployRole
           aws-region: ${{ env.AWS_REGION }}
+          role-duration-seconds: 14400
 
       - name: Install CDK dependencies
         run: npm ci
         working-directory: infra
 
-      # Step 1 — bootstrap infrastructure (VPC, ECR repos, DynamoDB, SQS, IAM).
-      # Uses 'latest' tag — ECS services won't start yet since images don't exist,
-      # but ECR repos get created so we can push to them next.
-      - name: Bootstrap infrastructure
-        run: npx cdk deploy LoadTestStack --require-approval never
-        working-directory: infra
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Detect changed paths
         id: changes
         run: |
-          # Force rebuild all images if this is the first real deploy (no images yet)
+          # Force rebuild all images if ECR repos are empty (fresh environment)
           has_image=$(aws ecr describe-images --repository-name loadtest/control-plane \
             --region $AWS_REGION --query 'length(imageDetails)' --output text 2>/dev/null || echo "0")
           if [ "$has_image" = "0" ]; then
@@ -91,10 +89,6 @@ jobs:
             echo "worker=$(echo "$changed"        | grep -q '^worker/'        && echo true || echo false)" >> $GITHUB_OUTPUT
             echo "grafana=$(echo "$changed"       | grep -q '^grafana/'       && echo true || echo false)" >> $GITHUB_OUTPUT
           fi
-
-      - name: Login to Amazon ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push control-plane image
         if: steps.changes.outputs.control-plane == 'true'
@@ -129,8 +123,9 @@ jobs:
           docker push $ECR_REGISTRY/loadtest/grafana:latest
         working-directory: grafana
 
-      # Step 2 — redeploy with real image tags so ECS picks up the new images
-      - name: Deploy with image tags
+      # CDK keeps all ECS services at desiredCount=0 so deploys always succeed
+      # regardless of whether images exist. The scale-up step below brings them live.
+      - name: Deploy stack
         env:
           CP_TAG:      ${{ steps.changes.outputs.control-plane == 'true' && github.sha || 'latest' }}
           WORKER_TAG:  ${{ steps.changes.outputs.worker        == 'true' && github.sha || 'latest' }}
@@ -142,3 +137,19 @@ jobs:
             --context grafanaTag=$GRAFANA_TAG \
             --require-approval never
         working-directory: infra
+
+      # Scale up control plane and grafana — images are guaranteed to be in ECR at this point.
+      # Worker desired count is managed by SQS-based autoscaling, not here.
+      - name: Scale up services
+        run: |
+          CLUSTER=$(aws ecs list-clusters --region $AWS_REGION \
+            --query 'clusterArns[?contains(@,`LoadTestStack`)]' --output text \
+            | xargs -I{} aws ecs describe-clusters --clusters {} --region $AWS_REGION \
+                         --query 'clusters[0].clusterName' --output text)
+          CP_SERVICE=$(aws ecs list-services --cluster $CLUSTER --region $AWS_REGION \
+            --query 'serviceArns[?contains(@,`ControlPlane`)]' --output text | awk -F/ '{print $NF}')
+          GRAFANA_SERVICE=$(aws ecs list-services --cluster $CLUSTER --region $AWS_REGION \
+            --query 'serviceArns[?contains(@,`Grafana`)]' --output text | awk -F/ '{print $NF}')
+          aws ecs update-service --cluster $CLUSTER --service $CP_SERVICE    --desired-count 1 --region $AWS_REGION > /dev/null
+          aws ecs update-service --cluster $CLUSTER --service $GRAFANA_SERVICE --desired-count 1 --region $AWS_REGION > /dev/null
+          echo "Scaled up $CP_SERVICE and $GRAFANA_SERVICE to 1"
