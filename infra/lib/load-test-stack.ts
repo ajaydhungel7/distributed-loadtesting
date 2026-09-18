@@ -212,7 +212,7 @@ export class LoadTestStack extends cdk.Stack {
     cpAlbSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'HTTP from internet');
 
     const cpServiceSg = new ec2.SecurityGroup(this, 'CpServiceSg', {
-      vpc, description: 'Control plane service — ALB traffic only', allowAllOutbound: true,
+      vpc, description: 'Control plane service - ALB traffic only', allowAllOutbound: true,
     });
     cpServiceSg.addIngressRule(cpAlbSg, ec2.Port.tcp(8000), 'From ALB only');
 
@@ -272,7 +272,7 @@ export class LoadTestStack extends cdk.Stack {
     });
 
     const workerSg = new ec2.SecurityGroup(this, 'WorkerSg', {
-      vpc, description: 'Worker — outbound only', allowAllOutbound: true,
+      vpc, description: 'Worker - outbound only', allowAllOutbound: true,
     });
 
     const workerService = new ecs.FargateService(this, 'WorkerService', {
@@ -386,7 +386,7 @@ export class LoadTestStack extends cdk.Stack {
     grafanaAlbSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'HTTP from internet');
 
     const grafanaServiceSg = new ec2.SecurityGroup(this, 'GrafanaServiceSg', {
-      vpc, description: 'Grafana service — ALB traffic only', allowAllOutbound: true,
+      vpc, description: 'Grafana service - ALB traffic only', allowAllOutbound: true,
     });
     grafanaServiceSg.addIngressRule(grafanaAlbSg, ec2.Port.tcp(3000), 'From Grafana ALB only');
 
