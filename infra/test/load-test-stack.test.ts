@@ -177,7 +177,7 @@ test('Target tracking policy uses backlog-per-task metric math', () => {
   template.hasResourceProperties('AWS::ApplicationAutoScaling::ScalingPolicy', {
     PolicyType: 'TargetTrackingScaling',
     TargetTrackingScalingPolicyConfiguration: Match.objectLike({
-      TargetValue: 10,
+      TargetValue: 500,
       ScaleOutCooldown: 60,
       ScaleInCooldown: 300,
     }),

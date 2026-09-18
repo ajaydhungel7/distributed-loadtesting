@@ -307,7 +307,7 @@ export class LoadTestStack extends cdk.Stack {
       policyType: 'TargetTrackingScaling',
       scalingTargetId: scalableTarget.scalableTargetId,
       targetTrackingScalingPolicyConfiguration: {
-        targetValue: 10,        // target: 10 messages per running worker
+        targetValue: 500,       // target: 500 messages per running worker
         scaleOutCooldown: 60,   // scale out quickly to absorb new jobs
         scaleInCooldown: 300,   // scale in conservatively (5 min) to avoid thrashing
         disableScaleIn: false,
